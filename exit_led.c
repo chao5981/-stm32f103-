@@ -15,6 +15,7 @@ void Key_EXTI_Configuration()
 {
 	GPIO_InitTypeDef Keystructure;
 	EXTI_InitTypeDef EXTIstructure;
+	RCC_APB2PeriphClockCmd(KEY1_GPIO_CLK,ENABLE);
 	NVIC_Configuration();
 	Keystructure.GPIO_Pin=GPIO_Pin_0;
 	Keystructure.GPIO_Mode=GPIO_Mode_IN_FLOATING;
