@@ -96,3 +96,5 @@ NVIC_IRQChannel：指定配置的中断源，但是我们打开枚举值，发�
 
 5.最后初始化这个结构体即可
 ![image](https://github.com/user-attachments/assets/03c5ecf0-096b-4682-91c6-6250de2c87b0)
+
+最后，我们需要在中断的头文件"stm32f10x_it.c"中编写中断函数，每一个EXTIx都有相对应的中断函数，例如EXTI0就对应着中断函数EXTI0_IRQHandler(),依次类推。按着自己的需要，编写中断函数即可。
