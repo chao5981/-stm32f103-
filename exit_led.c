@@ -1,57 +1,57 @@
 #include "exit_led.h"
 /**
- * @brief ÅäÖÃNVIC
- * @param ÎŞ
- * @retval ÎŞ
+ * @brief é…ç½®NVIC
+ * @param æ— 
+ * @retval æ— 
  */
 static void NVIC_Configuration()
 {
-	//´´½¨Ò»¸öNVICµÄ½á¹¹Ìå
+	//åˆ›å»ºä¸€ä¸ªNVICçš„ç»“æ„ä½“
 	NVIC_InitTypeDef NVIC_InitStructure;
-	//ÏÈÅäÖÃ×ÓÓÅÏÈ¼¶ºÍÇÀÕ¼ÓÅÏÈ¼¶¸÷¸ö¸ø¶àÉÙÎ»
+	//å…ˆé…ç½®å­ä¼˜å…ˆçº§å’ŒæŠ¢å ä¼˜å…ˆçº§å„ä¸ªç»™å¤šå°‘ä½
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-	//ÅäÖÃÇÀÕ¼ÓÅÏÈ¼¶
+	//é…ç½®æŠ¢å ä¼˜å…ˆçº§
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=1;
-	//ÅäÖÃ×ÓÓÅÏÈ¼¶
+	//é…ç½®å­ä¼˜å…ˆçº§
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority=1;
-	//Ê¹ÄÜNVIC_IQNÍ¨µÀ
+	//ä½¿èƒ½NVIC_IQNé€šé“
 	NVIC_InitStructure.NVIC_IRQChannelCmd=ENABLE;
-	//ÅäÖÃNVIC_IQNµÄÖ¸¶¨µÄÖĞ¶ÏÍ¨µÀ
+	//å¯åŠ¨æˆ–è€…ç¦æ­¢è¯¥ä¸­æ–­é€šé“
 	NVIC_InitStructure.NVIC_IRQChannel=KEY1_NVIC_IRQN;
-	//³õÊ¼»¯½á¹¹Ìå
+	//åˆå§‹åŒ–ç»“æ„ä½“
 	NVIC_Init(&NVIC_InitStructure);
 }
 /**
- * @brief ³õÊ¼»¯EXTIºÍGPIO
- * @param ÎŞ
- * @retval ÎŞ
+ * @brief åˆå§‹åŒ–EXTIå’ŒGPIO
+ * @param æ— 
+ * @retval æ— 
  */
 void Key_EXTI_Configuration()
 {
 	GPIO_InitTypeDef Keystructure;
 	EXTI_InitTypeDef EXTIstructure;
-	//Ç¶Ì×µ÷ÓÃNVIC_Configuration()£¬×¢Òâ£¬ËüÖ»ĞèÒªÅäÖÃÒ»´Î
+	//åµŒå¥—è°ƒç”¨NVIC_Configuration()ï¼Œæ³¨æ„ï¼Œå®ƒåªéœ€è¦é…ç½®ä¸€æ¬¡
 	NVIC_Configuration();
-	//********GPIOµÄÅäÖÃ*********//
-	//Ê¹ÄÜÊ±ÖÓ
+	//********GPIOçš„é…ç½®*********//
+	//ä½¿èƒ½æ—¶é’Ÿ
 	RCC_APB2PeriphClockCmd(KEY1_GPIO_CLK,ENABLE);
-	//È·¶¨Òı½Å
+	//ç¡®å®šå¼•è„š
 	Keystructure.GPIO_Pin=GPIO_Pin_0;
-	//È·¶¨ÊäÈëÄ£Ê½
+	//ç¡®å®šè¾“å…¥æ¨¡å¼
 	Keystructure.GPIO_Mode=GPIO_Mode_IN_FLOATING;
-	//³õÊ¼»¯GPIO½á¹¹Ìå
+	//åˆå§‹åŒ–GPIOç»“æ„ä½“
 	GPIO_Init(KEY1_GPIO_PORT,&Keystructure);
-	//*******EXTIµÄÅäÖÃ*********//
-	//È·¶¨ÖĞ¶ÏµÄÍâÉèµÄÀ´Ô´
+	//*******EXTIçš„é…ç½®*********//
+	//ç¡®å®šä¸­æ–­çš„å¤–è®¾çš„æ¥æº
 	GPIO_EXTILineConfig(KEY1_EXTI_PortSource,KEY1_EXTI_PinSource);
-	//ÅäÖÃÄÄ¸öÍâÉèµÄÄÇ¸öÒı½Åµ¼ÖÂÖĞ¶Ï(Ö¸¶¨EXTIÏß)
+	//é…ç½®å“ªä¸ªå¤–è®¾çš„é‚£ä¸ªå¼•è„šå¯¼è‡´ä¸­æ–­(æŒ‡å®šEXTIçº¿)
 	EXTIstructure.EXTI_Line=KEY1_EXTI_LINE;
-	//ÅäÖÃÊÇ²úÉúÊÂ¼şÏß»¹ÊÇÖĞ¶ÏÏß
+	//é…ç½®æ˜¯äº§ç”Ÿäº‹ä»¶çº¿è¿˜æ˜¯ä¸­æ–­çº¿
 	EXTIstructure.EXTI_Mode=EXTI_Mode_Interrupt;
-	//ÅäÖÃ±ßÑØ¼ì²âµçÂ·£¬ÈçºÎ²ÅÄÜ²ÅÊÇÖĞ¶Ï
+	//é…ç½®è¾¹æ²¿æ£€æµ‹ç”µè·¯ï¼Œå¦‚ä½•æ‰èƒ½æ‰æ˜¯ä¸­æ–­
 	EXTIstructure.EXTI_Trigger=EXTI_Trigger_Rising;
-	//Æô¶¯EXTIÏß(ÅäÖÃÈí¼şÖĞ¶ÏÊÂ¼ş¼Ä´æÆ÷)
+	//å¯åŠ¨EXTIçº¿(é…ç½®è½¯ä»¶ä¸­æ–­äº‹ä»¶å¯„å­˜å™¨)
 	EXTIstructure.EXTI_LineCmd=ENABLE;
-	//³õÊ¼»¯EXTI½á¹¹Ìå
+	//åˆå§‹åŒ–EXTIç»“æ„ä½“
 	EXTI_Init(&EXTIstructure);
 }
