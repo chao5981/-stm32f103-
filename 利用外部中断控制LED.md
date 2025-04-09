@@ -43,7 +43,9 @@
 
 至此，EXTI和NVIC的工作原理我们全部介绍完毕。我们整个队。
 
-GPIO的输入引脚检测到电平的变化，并和EXTI的边沿检测电路进行对比，当检测到你设置的触发条件，EXTI会认为这是一次有效的中断触发，并置位对应的挂起标志（EXTI_PR寄存器中的位会被置1），也就是“记录”中断发生了，还没有真正执行中断服务程序(NVIC).然后EXTI 把中断“申请”交给了NVIC。NVIC再检查你配置的这个中断线（比如 EXTI0_IRQn）是否已启用？是否结构体初始化NVIC_Init()？是否NVIC_IQNchannel是否ENABLE? NVIC再根据当前是否有别的中断在执行、优先级是否更高，来决定马上进入中断服务程序（ISR），还是等其他更高优先级中断执行完再处理。
+GPIO的输入引脚检测到电平的变化，并和EXTI的边沿检测电路进行对比，当检测到你设置的触发条件，EXTI会认为这是一次有效的中断触发，并置位对应的挂起标志（EXTI_PR寄存器中的位会被置1），也就是“记录”中断发生了，还没有真正执行中断服务程序(NVIC).然后EXTI 把中断“申请”交给了NVIC。NVIC再检查你配置的这个中断线（比如 EXTI0_IRQn）是否已启用？是否结构体初始化NVIC_Init()？是否NVIC_IQNchannelcmd是否ENABLE? NVIC再根据当前是否有别的中断在执行、优先级是否更高，来决定马上进入中断服务程序（ISR），还是等其他更高优先级中断执行完再处理。
+![image](https://github.com/user-attachments/assets/ef1b8579-4398-4b93-aa09-016d1ab699f6)
+
 
 下面我们开始利用中断编写一个程序--按下按键即为中断，在中断函数中使得LED灯的颜发生变化。
 
@@ -52,9 +54,45 @@ GPIO的输入引脚检测到电平的变化，并和EXTI的边沿检测电路进
 1.确定抢占优先级和子优先级的分组
 ![image](https://github.com/user-attachments/assets/eed9ed0b-595f-48f4-bb11-04d7eda5f0ea)
 
-2.初始化结构体并按着要求配置
+2.初始化结构体对里面的成员进行配置
 ![image](https://github.com/user-attachments/assets/9aaa30cb-3652-4343-8368-9a134bc95ba4)
-这里我相信大家NVIC_IRQChannelCmd(启用或者禁止中断通道)，NVIC_IRQChannelPreemptionPriority(配置抢占优先级大小)和NVIC_IRQChannelSubPriority(配置子优先级的大小)大家应该都没有问题，最大的问题可能是NVIC_IRQChannel(配置哪个要中断)，这里我着重讲一下这个。
+这里我相信大家NVIC_IRQChannelCmd(启用或者禁止中断通道)，NVIC_IRQChannelPreemptionPriority(配置抢占优先级大小)和NVIC_IRQChannelSubPriority(配置子优先级的大小)大家应该都没有问题，最大的问题可能是NVIC_IRQChannel(配置哪个要中断通道)，这里我着重讲一下这个。
 
-NVIC_IRQChannel：
+NVIC_IRQChannel：指定配置的中断源，但是我们打开枚举值，发现根本没有对应的GPIO接口啊
+![image](https://github.com/user-attachments/assets/af1004fc-ba91-4598-8aee-10dfd2e55bee)
 
+那是因为GPIO的接口和EXTIx_IQN有个映射(即把一个具体的硬件资源（比如某个GPIO引脚）关联到某个内部功能（比如EXTI线路、某个定时器通道、ADC输入通道等）上)，映射关系如下。
+![image](https://github.com/user-attachments/assets/c4508888-32d3-417f-8d27-795c5a184b6c)
+![image](https://github.com/user-attachments/assets/03326240-4d49-4262-a49c-ac282fbcc769)
+
+例如我要配置的中断线再在PA0中，那么我们只需要选择EXTI0_IQN这个参数即可。
+
+所以NVIC_channel的作用是什么，正是我上面整队的时候所说，NVIC再检查你配置的这个中断线（比如 EXTI0_IRQn）是否已启用，以判断NVIC是否对你的中断进行响应。
+
+3.然后我们将这个结构体初始化即可
+![image](https://github.com/user-attachments/assets/d3bff902-6ed2-4ab5-a176-df2917c53b66)
+
+
+我们配置NVIC的函数就算是写完了，这里需要注意的是，这个配置NVIC的函数只需要在主函数中设置一次。当你后面写复杂程序时，若你发现自己的中断无法实现或者优先级不对，那需要考虑是不是几个模块的初始化函数都包含了NVIC的配置函数。
+
+配置完毕后，我们还需要配置按键和EXTI
+
+按键的配置就是正常的GPIO的配置，这里我们直接略过
+
+1.EXTI的配置我们需要先定义一个结构体，并按照里面含有的成员进行配置
+![image](https://github.com/user-attachments/assets/9c6d49be-6ded-4f55-a54e-069e63612758)
+
+2.配置EXTI的时钟，EXTI的时钟虽然也是挂在APB2上，要求传入的参数时"RCC_APB2Periph_AFIO"。这一步我和GPIO的时钟或了一下一起使能了。
+
+3.调用函数GPIO_EXTILineConfig()，确定中断的外设和引脚来源，注意这里的外设和引脚来源的参数还和GPIOx和引脚还不一样。
+![image](https://github.com/user-attachments/assets/da265c82-6704-4637-ae25-99fa748037f1)
+如何找到请见main函数中的操作手则。
+
+4.配置里面含有的成员，这里我只和大家讲解一下这几个成员的意思。
+①.EXTI_Line：选择外部中断线，例如EXTI0_Line就是表示EXTI0
+②.EXTI_Mode：选择中断或事件模式
+③.EXTI_Trigger：触发模式，选择上升沿触发，下降沿触发或者双边沿触发
+④.EXTI——Linecmd:启动/禁用EXTI线
+
+5.最后初始化这个结构体即可
+![image](https://github.com/user-attachments/assets/03c5ecf0-096b-4682-91c6-6250de2c87b0)
