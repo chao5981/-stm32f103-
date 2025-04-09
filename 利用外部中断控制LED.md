@@ -6,6 +6,18 @@
 
 这俩个是如何工作的呢，简单来说，NVIC是用来配置中断的优先级的，就像是51单片机中调用中断时的"interrupt x"中的"x";而EXTI是负责检测外部引脚的电平变化（如按键、GPIO 边沿触发），并生成中断请求信号给NVIC。
 
+但是NVIC可绝没有C51中的"interrupt x"那么简单。在C51中，我们是根据"interrupt x"中的'x'去判断哪个中断优先;但是在NVIC中，他是把整个优先级分成了"抢占优先级"和"子优先级"俩个优先级。那么如何看哪个中断优先呢？抢占优先级高的就会抢占抢占优先级低的优先得到执行，如果抢占优先级相同，就比较子优先级。如果抢占优先级和子优先级都相同的话，就比较他们的硬件中断编号，编号越小，优先级越高。
+
+让我们先看看NVIC的相关寄存器。
+![image](https://github.com/user-attachments/assets/2248c2b6-d642-4fdb-aadc-da50abd4c28f)
+你现在所看到的就是配置优先级的寄存器，正常的应该有16位的，但是绝大多数CM3芯片都会精简设计，以致实际上支持的优先级数减少，在F103中，只使用了高4bit。
+
+那可是这个寄存器可不会告诉计算机哪个部分是抢占优先级哪个部分是子优先级。所以这里的分组需要我们自己调用库函数去告诉计算机
+
+那么我们配置之后，优先级和子优先级的范围是多少？请见下图：
+![image](https://github.com/user-attachments/assets/82b5ed57-5988-446d-816f-d338e4cdfc9d)
+
+
 这里我们需要的是外设中断，关键是弄懂EXTI控制器是如何工作的，原理图如图所示。
 ![image](https://github.com/user-attachments/assets/2ca12bfc-abe3-4ee4-9ca7-9b3723444e02)
 红色的是中断线，我先讲解中断线。
@@ -29,4 +41,15 @@
 5.也就是编号7：一个脉冲发生器，当传来有效信号1时，就会产生一个脉冲信号，这个脉冲信号可以给其他外设电路使用，比如定时器TIM、模拟数字转换器ADC等等。
 
 至此，EXTI和NVIC的工作原理我们全部介绍完毕，下面我们开始利用中断编写一个程序--按下按键即为中断，在中断函数中使得LED灯的颜发生变化。
+
+首先，配置NVIC及其相关寄存器
+
+1.确定抢占优先级和子优先级的分组
+![image](https://github.com/user-attachments/assets/eed9ed0b-595f-48f4-bb11-04d7eda5f0ea)
+
+2.初始化结构体并按着要求配置
+![image](https://github.com/user-attachments/assets/9aaa30cb-3652-4343-8368-9a134bc95ba4)
+这里我相信大家NVIC_IRQChannelCmd(启用或者禁止中断通道)，NVIC_IRQChannelPreemptionPriority(配置抢占优先级大小)和NVIC_IRQChannelSubPriority(配置子优先级的大小)大家应该都没有问题，最大的问题可能是NVIC_IRQChannel(配置哪个要中断)，这里我着重讲一下这个。
+
+
 
