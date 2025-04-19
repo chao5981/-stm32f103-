@@ -4,6 +4,10 @@ DMA(Direct Memory Access)—直接存储器存取，是单片机的一个外设�
 
 ![image](https://github.com/user-attachments/assets/bad481a1-4fe8-4483-a91c-e2af89017c98)
 
+注意:这张图中的AHB1和AHB2总线接的东西有问题,实际上应该是这样的
+![image](https://github.com/user-attachments/assets/ec841840-151e-4df6-9f7f-2ad4ffc649c9)
+其余部分并没有问题
+
 简单介绍一下这张图，首先，DMA分成俩部分:DMA1和DMA2;DMA与所有AHB从设备都有映射;也就是说，所有挂在AHB时钟线上的外设都可以与DMA联系起来;从AHB映射到DMA的通道之间有一个"仲裁器",其实就是优先级，仲裁器管理 DMA 通道请求分为两个阶段。第一阶段属于软件阶段，可以在 DMA_CCRx 寄存器中设置，有 4 个等级：非常高、高、中和低四个优先级。第二阶段属于硬件阶段，如果两个或以上的 DMA 通道请求设置的优先级一样，则他们优先级取决于通道编号，编号越低优先权越高，比如通道 0 高于通道 1。在大容量产品和互联型产品中，DMA1 控制器拥有高于 DMA2 控制器的优先级。
 
 DMA和AHB从设备之间的映射如下图:
