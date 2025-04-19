@@ -40,6 +40,9 @@ enum类型的Enumerator就是可以赋的值啦
 ![image](https://github.com/user-attachments/assets/33589a13-0fff-4359-9260-c19298757350)
 主播主播，可是我不知道这说明意思阿，怎么办。
 没事，懂这些的AI还有好几个，问他们是什么意思就行了
+
+例如：GPIO_Mode_AF_PP 是片上外设输出; GPIO_Mode_Out_PP 则是GPIO 数据寄存器输出
+
 ![image](https://github.com/user-attachments/assets/7b590684-7199-4144-8d59-9aee2127c9c1)
 如果你想看具体的头文件，那就点击底下的头文件就好了
 ![image](https://github.com/user-attachments/assets/1b9a9f7a-65af-40c6-82cb-3c326a5bc137)
