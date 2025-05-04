@@ -17,7 +17,7 @@ I2C有主模式和从模式，主模式就是stm32作为主机，掌握着数据
 
 2.设置一个变量I2CTimeout，令其等于I2CT_FLAG_TIMEOUT(宏定义为((uint32_t)0x1000))，并用while循环调用I2C_CheckEvent()函数等待EV5事件，如果响应了则跳出while循环，如果没有直接退出，防止死等。
 
-3.接着发送"大地址"，因为一个固件可能含有多个EEPROM，你得告诉编译器你得存在哪里，这时候需要调用I2C_Send7bitAddress()
+3.接着发送"大地址"(设备地址)，因为一个固件可能含有多个EEPROM，你得告诉编译器你得存在哪里，这时候需要调用I2C_Send7bitAddress()
 
 4.设置一个变量I2CTimeout，令其等于I2CT_FLAG_TIMEOUT(宏定义为((uint32_t)0x1000))，并用while循环调用I2C_CheckEvent()函数等待EV6事件，如果响应了则跳出while循环，如果没有直接退出，防止死等。
 
@@ -46,6 +46,28 @@ I2C有主模式和从模式，主模式就是stm32作为主机，掌握着数据
 
 3.设置一个变量I2CTimeout，令其等于I2CT_FLAG_TIMEOUT(宏定义为((uint32_t)0x1000))，并用while循环调用I2C_CheckEvent()函数等待EV5事件，如果响应了则跳出while循环，如果没有直接退出，防止死等。
 
-4.接着发送"大地址"，因为一个固件可能含有多个EEPROM，你得告诉编译器你得存在哪里，这时候需要调用I2C_Send7bitAddress()
+4.接着发送"大地址"(设备地址)，因为一个固件可能含有多个EEPROM，你得告诉编译器你得存在哪里，这时候需要调用I2C_Send7bitAddress()
 
 5.设置一个变量I2CTimeout，令其等于I2CT_FLAG_TIMEOUT(宏定义为((uint32_t)0x1000))，并用while循环调用I2C_CheckEvent()函数等待EV6事件，如果响应了则跳出while循环，如果没有直接退出，防止死等。
+
+6.发送内部地址
+
+7.设置一个变量I2CTimeout，令其等于I2CT_FLAG_TIMEOUT(宏定义为((uint32_t)0x1000))，并用while循环调用I2C_CheckEvent()函数等待EV8事件，如果响应了则跳出while循环，如果没有直接退出，防止死等。
+
+注意:这就是和图中不一样的地方，准确来说，读操作时一个复合的I2C时序，完整的时序图如图所示:
+![image](https://github.com/user-attachments/assets/4eb43b3f-ec3f-402a-a728-17dd1b0e3a8f)
+
+发送内部地址并检查EV8过后主机并不会就可以接收到数据，而是需要把方向切换一下，这时候就需要再次调用I2C_GenerateSTART()以切换数据的传输方向。
+
+8.于是，调用I2C_GenerateSTART()以切换数据的传输方向。
+
+9.设置一个变量I2CTimeout，令其等于I2CT_FLAG_TIMEOUT(宏定义为((uint32_t)0x1000))，并用while循环调用I2C_CheckEvent()函数等待EV5事件，如果响应了则跳出while循环，如果没有直接退出，防止死等。
+
+10.再次发送"大地址"(设备地址)
+
+11.设置一个变量I2CTimeout，令其等于I2CT_FLAG_TIMEOUT(宏定义为((uint32_t)0x1000))，并用while循环调用I2C_CheckEvent()函数等待EV6事件，如果响应了则跳出while循环，如果没有直接退出，防止死等。
+
+12.直接读取数据即可。
+
+在我的代码中，我多写了一行I2C_cmd()，这一行其实要不要都可以，以在某些低功耗/中断场景中防止意外关闭。
+
