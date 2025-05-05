@@ -28,7 +28,7 @@ SCK：时钟
 
 第四：SPI和I2C读取数据的不同
 
-在I2C协议中，读取数据是有一个专门的时序，这个时序被封装成了I2C_ReceiveData()函数;但是在SPI中并没有专门的接收数据的函数，而是要通过发送伪数据让从设备返回其内部的数据。为什么呢?因为SPI是“全双工”通信：每发送一个字节（MOSI），就会同步接收一个字节（MISO）——无论你想不想接收。而I2C是"半双工"通信，通信双方不能同时“发”和“收”，一次只能是一个方向的数据流。
+在I2C协议中，读取数据是有一个专门的时序，这个时序被封装成了I2C_ReceiveData()函数;但是在SPI中并没有专门的接收数据的函数，虽然有SPI_I2S_ReceiveData()函数，但是被动的接收到返回的数据，而不是主动地去要数据。于是要通过发送伪数据让从设备返回其内部的数据。为什么呢?因为SPI是“全双工”通信：每发送一个字节（MOSI），就会同步接收一个字节（MISO）——无论你想不想接收。而I2C是"半双工"通信，通信双方不能同时“发”和“收”，一次只能是一个方向的数据流。
 
 第五:SPI的事件检测没有I2C那么复杂
 
@@ -78,4 +78,34 @@ SPI_CPHA和SPI_CPOL共同确定了SPI的模式，如下图
 下面我们开始编写相对应的函数。
 
 一.初始化函数
-1.初始化相应的GPIO引脚，
+初始化相应的GPIO引脚，NSS引脚设置为推挽输出，SCK，MOSI设置为复用推挽输出，MISO设置为浮空输入模式；初始化SPI结构体并直接使能SPI。
+
+二.编写写一个字节函数Flash_SPI_SendByte(u8 Byte)
+![image](https://github.com/user-attachments/assets/ce6a84c7-d2e3-460a-aa09-7c38ffb1c0d1)
+![image](https://github.com/user-attachments/assets/00f09945-6f89-494b-a957-7cab4a2732f7)
+
+这是写一个字节的时序，第2，3，4步固件库已经帮我们完成，封装在SPI_I2S_SendData()函数中。
+
+1.设置SPITimeout=SPIT_FLAG_TIMEOUT( ((uint32_t)0x1000)),等待TXE，如图所示，只有TXE被置1，才可以继续发送数据。
+
+2.调用SPI_I2S_SendData()发送数据
+
+3.设置SPITimeout=SPIT_FLAG_TIMEOUT( ((uint32_t)0x1000)),等待RXNE，如图所示，只有RXNE被置1，才可以接收到数据(全双工通信，发送数据后会接收到数据)。
+
+4.returnSPI_I2S_ReceiveData(FLASH_SPIx)函数得到接收到的数据
+
+三.编写读取一个字节的函数Flash_SPI_ReadByte(void)
+直接调用Flash_SPI_SendByte(u8 Byte)即可，参数选择Dummy_Byte(这是一个无效的写入数据，也就是"伪写入")。
+
+四.写使能函数 Flash_SPI_WriteEnable(void)
+拉低NSS总线，调用Flash_SPI_SendByte(u8 Byte)发送写指令W25X_WriteEnable，拉高NSS总线。
+
+五.等待擦除/写入完成函数Flash_SPI_WaitForWriteOrEraseEnd();
+拉低NSS总线，读取SPI的状态，将这个数据和WIP_Flag进行&操作(判断SPI外设是否在忙)，如果在忙，那就循环进行等待
+
+六.擦除一个扇区的函数
+调用写使能函数，拉低NSS总线，接着调用Flash_SPI_SendByte(u8 Byte)发送扇区擦除指令(W25X_SectorErase)，发送地址(地址是u32类型，但是数据的传输为u8类型，因此需要移位操作分三次发送)，然后拉高NSS总线，调用Flash_SPI_WaitForWriteOrEraseEnd();等待擦除完成。
+
+七.页写，翻页写，翻页读函数和I2C的逻辑类似，这里不多介绍
+
+八.
