@@ -3,6 +3,7 @@
   但由于开发板的限制，我现在无法进行实验展示，这里我们只是简要学习一下。
   下面是FSMC的框图：
   ![image](https://github.com/user-attachments/assets/30c4acd3-ab50-4a2a-9df7-af9bddfb8f89)
+  
   我们可以看到，引脚分为公共引脚和不同储存器对应的特殊引脚。我来解释一下各个引脚的意思：
   公用信号
   FSMC_A[25:0] ：地址线，用于传输外部存储器的地址信息 ，确定要访问的存储单元位置。
@@ -35,11 +36,20 @@
   FSMC_CD ：卡检测信号，用于检测 PC 卡是否插入 。
 
 
-  对于内存的安排，从FSMC的角度看，可以把外部存储器划分为固定大小为256M字节的四个存储块，见下图：
-  ![image](https://github.com/user-attachments/assets/05a4f3e5-ce5f-40d1-a232-9882bb3ddc5b)
+  那么,FSMC是如何工作的呢？下面是FSMC的地址映射图：
+  ![image](https://github.com/user-attachments/assets/901b8357-f2ae-46df-9004-d65f124bf68d)
+  
+  我们可以通过访问内核的地址，通过地址映射到FSMC外设，从而访问到外接寄存器。
+
+  从FSMC的角度看，可以把外部存储器划分为固定大小为256M字节的四个存储块
   存储块1用于访问最多4个NOR闪存或PSRAM存储设备。这个存储区被划分为4个NOR/PSRAM区并有4个专用的片选。
   存储块2和3用于访问NAND闪存设备，每个存储块连接一个NAND闪存。
-  存储块4用于访问PC卡设备。
+  存储块4用于访问PC卡设备
+
+  在bank区域内，我们还可以进行分区，如图所示：
+  ![image](https://github.com/user-attachments/assets/39fb8f2a-5c3c-4405-a9e7-4554412a3fdc)
+  
+  对于不同的外接寄存器，读写方式也一定有区别，FSMC提供了多种模式。这个可以在参考手册中查阅。
 
   
 
