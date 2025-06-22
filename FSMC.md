@@ -66,7 +66,7 @@
       f.FSMC_DataLatency（数据延迟），作用：同步模式下，存储器可能需要几个时钟周期后才能返回数据（比如Burst读NOR Flash），异步模式下固定为0。
       g.FSMC_AccessMode（访问模式），作用：选择四种握手模式（A/B/C/D），决定控制信号（NOE、NWE）的触发时机。这里我选择的是模式A。FMSC相比于传统的GPIO模拟的优势就在这里，你不用去根据时序图用GPIO去模拟，而是你只要把那几个引脚交给FSMC，然后设定好时间，选定好模式，再配置下面我所说的结构体，他就能完成对外寄存器访问的操作，就和操作自己内部的寄存器一样。
   ②.配置NOR Flash/SRAM的存储区域、数据宽度、模式等(配置FSMC_NORSRAMInitTypeDef结构体)
-    a. FSMC_Bank（存储区域选择），作用：选择 FSMC 控制的“银行”（Bank），比如 FSMC_Bank1_NORSRAM1~4。就像选择电脑的 USB 接口（USB1/USB2/USB3），不同接口接不同设备。这里我选择的是bank1_NORSRAM1.
+    a. FSMC_Bank（存储区域选择），作用：选择 FSMC 控制的“银行”（Bank），比如 FSMC_Bank1_NORSRAM1到4。就像选择电脑的 USB 接口（USB1/USB2/USB3），不同接口接不同设备。这里我选择的是bank1_NORSRAM1.
     b.FSMC_DataAddressMux（数据/地址复用），作用：是否让数据线和地址线共用同一组引脚（类似“一线两用”）。一般我们禁止复用。
     c.FSMC_MemoryType（存储器类型），作用：告诉 FSMC 你接的是 NOR Flash 还是 SRAM。
     d.FSMC_MemoryDataWidth（数据宽度），作用：选择数据总线是8位还是16位
