@@ -81,4 +81,9 @@
     m.FSMC_WriteBurst（突发写使能），作用：是否启用“连续写入”模式（类似批量发送），由于普通 SRAM 用不到，因此常用disable
     n.FSMC_ReadWriteTimingStruct（读写时序），作用：绑定一个时序配置结构体（FSMC_NORSRAMTimingInitTypeDef），设置地址建立时间、数据保持时间，就是把上面你配置的FSMC_NORSRAMTimingInitTypeDef赋值进去，所以FSMC_NORSRAMTimingInitTypeDef结构体要先配置。
     o.FSMC_WriteTimingStruct（写时序），作用：如果启用扩展模式（ExtendedMode = Enable），可以单独配置写时序；不启用扩展模式时设为 NULL。
-    
+3.初始化FSMC_NORSRAMInitTypeDef结构体
+4.使能这个结构体
+5.编写读写数据的函数，这里我用的是指针直接操作，就和C语言的指针写入差不多。
+6.对于查看内存利用率，我用的是类似于C语言的malloc库，这里不讲如何编写，直接移植会用就好。
+
+接下来看我的主函数，写入或者读取确实可以直接用指针操作(例如分配内存然后sprintf)，这样做方便，不用管大小的问题；但像写在哪里/读哪里的数据，用自己编写的读写函数是最方便的。
