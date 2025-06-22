@@ -56,6 +56,7 @@
   ![image](https://github.com/user-attachments/assets/61cbcc9b-7698-40cc-9719-351cdae2e25e)
 
   1.初始化FSMC的所有GPIO引脚，GPIO引脚模式配置为复用功能(这由于FSMC的硬件要求，必须由FSMC直接驱动，而不是GPIO简单的输入输出模式，复用模式就是把引脚的控制权交给FSMC)，速度为50HZ。
+  
   2.配置FSMC相关的结构体并且使能
     ①.配置NOR Flash/SRAM的时序参数(配置FSMC_NORSRAMTimingInitTypeDef结构体)
     
@@ -72,7 +73,7 @@
       f.FSMC_DataLatency（数据延迟），作用：同步模式下，存储器可能需要几个时钟周期后才能返回数据（比如Burst读NOR Flash），异步模式下固定为0。
       
       g.FSMC_AccessMode（访问模式），作用：选择四种握手模式（A/B/C/D），决定控制信号（NOE、NWE）的触发时机。这里我选择的是模式A。FMSC相比于传统的GPIO模拟的优势就在这里，你不用去根据时序图用GPIO去模拟，而是你只要把那几个引脚交给FSMC，然后设定好时间，选定好模式，再配置下面我所说的结构体，他就能完成对外寄存器访问的操作，就和操作自己内部的寄存器一样。
-      
+
   ②.配置NOR Flash/SRAM的存储区域、数据宽度、模式等(配置FSMC_NORSRAMInitTypeDef结构体)
   
     a. FSMC_Bank（存储区域选择），作用：选择 FSMC 控制的“银行”（Bank），比如 FSMC_Bank1_NORSRAM1到4。就像选择电脑的 USB 接口（USB1/USB2/USB3），不同接口接不同设备。这里我选择的是bank1_NORSRAM1.
@@ -106,8 +107,11 @@
     o.FSMC_WriteTimingStruct（写时序），作用：如果启用扩展模式（ExtendedMode = Enable），可以单独配置写时序；不启用扩展模式时设为 NULL。
     
 3.初始化FSMC_NORSRAMInitTypeDef结构体
+
 4.使能这个结构体
+
 5.编写读写数据的函数，这里我用的是指针直接操作，就和C语言的指针写入差不多。
+
 6.对于查看内存利用率，我用的是类似于C语言的malloc库，这里不讲如何编写，直接移植会用就好。
 
 接下来看我的主函数，写入或者读取确实可以直接用指针操作(例如分配内存然后sprintf)，这样做方便，不用管大小的问题；但像写在哪里/读哪里的数据，用自己编写的读写函数是最方便的。
