@@ -53,5 +53,32 @@
 
   
   下面谈谈如何使能FSMC,这里我以Bank1_SRAM1，用模式A为例子。
+  ![image](https://github.com/user-attachments/assets/61cbcc9b-7698-40cc-9719-351cdae2e25e)
 
-  1.初始化FSMC的所有GPIO引脚，
+  1.初始化FSMC的所有GPIO引脚，GPIO引脚模式配置为复用功能(这由于FSMC的硬件要求，必须由FSMC直接驱动，而不是GPIO简单的输入输出模式，复用模式就是把引脚的控制权交给FSMC)，速度为50HZ。
+  2.配置FSMC相关的结构体并且使能
+    ①.配置NOR Flash/SRAM的时序参数(配置FSMC_NORSRAMTimingInitTypeDef结构体)
+      a. FSMC_AddressSetupTime（地址建立时间），作用：告诉存储器：“我要给你发地址了，你先准备一下，等我稳定了再干活！”。对应的是时序图的"ADDSRT"的大小。但是ADDSET并不是由FSMC决定的，而是由你外部寄存器决定的。若要确定ADDSET的大小，你需要去查阅外接的寄存器的t_AH/t_SU(addr)参数(单位:us)，计算公式为ADDSET≥t_AH/T(HCLK)-1，HCLK的周期由你的决定(大部分情况下会默认是72HZ)。需要注意的是，ADDSET在stm32的参考手册上明确提到必须≥0。我的参数是瞎选作为示例的.
+      b.FSMC_AddressHoldTime(地址保持时间)，作用：地址发完后，再多保持一段时间，确保存储器能稳稳地锁存地址。由于现代存储器速度够快，不需要额外保持，通常设为0。
+      c.FSMC_DataSetupTime（数据建立时间），作用：数据信号（读或写）需要保持稳定的最短时间。对应的是时序图的"DATAST"的大小。但是DATAST并不是由FSMC决定的，而是由你外部寄存器决定的。若要确定DATAST的大小，你需要去查阅外接的寄存器的t_HD(data)参数(单位:us)，计算公式为ADDSET≥t_HD(data)/T(HCLK)-1，HCLK的周期由你的决定(大部分情况下会默认是72HZ)。需要注意的是，DATAST在stm32的参考手册上明确提到必须＞0，也就是说，至少为1。我的参数是瞎选作为示例的，实际上很少见DATAST这么短的。至少都为5/6.
+      d.FSMC_BusTurnAroundDuration（总线周转时间），作用：从“读”切换到“写”（或反过来）时，总线需要“喘口气”的时间。异步模式通常设为0（直接切换），同步模式可能需要1~2周期。
+      e.FSMC_CLKDivision（时钟分频），作用：只在同步模式下有用，决定FSMC_CLK时钟的分频系数（比如HCLK/2），异步模式下直接设为0（不需要时钟）。
+      f.FSMC_DataLatency（数据延迟），作用：同步模式下，存储器可能需要几个时钟周期后才能返回数据（比如Burst读NOR Flash），异步模式下固定为0。
+      g.FSMC_AccessMode（访问模式），作用：选择四种握手模式（A/B/C/D），决定控制信号（NOE、NWE）的触发时机。这里我选择的是模式A。FMSC相比于传统的GPIO模拟的优势就在这里，你不用去根据时序图用GPIO去模拟，而是你只要把那几个引脚交给FSMC，然后设定好时间，选定好模式，再配置下面我所说的结构体，他就能完成对外寄存器访问的操作，就和操作自己内部的寄存器一样。
+  ②.配置NOR Flash/SRAM的存储区域、数据宽度、模式等(配置FSMC_NORSRAMInitTypeDef结构体)
+    a. FSMC_Bank（存储区域选择），作用：选择 FSMC 控制的“银行”（Bank），比如 FSMC_Bank1_NORSRAM1~4。就像选择电脑的 USB 接口（USB1/USB2/USB3），不同接口接不同设备。这里我选择的是bank1_NORSRAM1.
+    b.FSMC_DataAddressMux（数据/地址复用），作用：是否让数据线和地址线共用同一组引脚（类似“一线两用”）。一般我们禁止复用。
+    c.FSMC_MemoryType（存储器类型），作用：告诉 FSMC 你接的是 NOR Flash 还是 SRAM。
+    d.FSMC_MemoryDataWidth（数据宽度），作用：选择数据总线是8位还是16位
+    e.FSMC_BurstAccessMode（突发访问模式），作用：是否启用“连发”模式（一次发多个地址，连续读写）。由于普通 SRAM 用不到突发模式，一般我们直接disable。
+    f.FSMC_AsynchronousWait（异步等待），作用：是否让存储器通过信号线告诉 FSMC“我还没准备好，等等！”。由于一般 SRAM 不需要这个功能，一般我们disable。
+    g.FSMC_WaitSignalPolarity（等待信号极性），作用：规定“等待信号”是高电平有效还是低电平有效（如果启用异步等待），一般我们设置低电平有效
+    h.FSMC_WrapMode（回绕模式），作用：突发传输时，是否让地址自动“绕回来”（像环形缓冲区）。由于普通 SRAM 用不到突发模式，更何况回绕模式，一般disable
+    i.FSMC_WaitSignalActive（等待信号阶段）,作用：在突发传输的哪个阶段插入“等待信号”（如果启用）。由于普通 SRAM 用不到突发模式，其实可以随便选，就算用，常用值为BeforeWaitState（在等待状态前插入）。
+    j.FSMC_WriteOperation（写使能），作用：是否允许写入存储器（必须设为 Enable，否则只能读！）。
+    k.FSMC_WaitSignal（等待信号使能），作用：是否启用“等待信号”功能（一般 SRAM 不需要），所以常设为disable
+    l.FSMC_ExtendedMode（扩展模式），作用：是否对“读时序”和“写时序”分开配置（像分开设置上班和下班时间），一般读写用同一套时序，因此我们常设为disable
+    m.FSMC_WriteBurst（突发写使能），作用：是否启用“连续写入”模式（类似批量发送），由于普通 SRAM 用不到，因此常用disable
+    n.FSMC_ReadWriteTimingStruct（读写时序），作用：绑定一个时序配置结构体（FSMC_NORSRAMTimingInitTypeDef），设置地址建立时间、数据保持时间，就是把上面你配置的FSMC_NORSRAMTimingInitTypeDef赋值进去，所以FSMC_NORSRAMTimingInitTypeDef结构体要先配置。
+    o.FSMC_WriteTimingStruct（写时序），作用：如果启用扩展模式（ExtendedMode = Enable），可以单独配置写时序；不启用扩展模式时设为 NULL。
+    
