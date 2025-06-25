@@ -63,4 +63,26 @@ DMA也可以设置中断，有三种中断类型，见下图。
 
 先通过USART的中断接收到数据，将数据存到一个数组(缓冲区)中，当接收到换行符或者缓存区满的时候，启动DMA发送数据即可。
 
-  这里我是使用软件控制DMA发送数据，在与有些外设的交互中是由硬件完成的而不需要我们手动操作，例如：在ADC中，一旦 ADC 转换完成，DMA 会自动响应这个请求，将数据从 ADC 的数据寄存器传输到内存中。其他的还有USART和DMA，但是这个是USART发送缓冲区/接收缓冲非区为空过后才发送DMA请求；SPI和DMA也可以提高数据的传输速率，当 SPI 的发送缓冲区/接收缓冲区非空为空时，硬件会触发 DMA 请求。
+  这里我是使用软件控制DMA发送数据，在与有些外设的交互中是由硬件完成的而不需要我们手动操作，例如：
+  
+  1.在ADC中，一旦 ADC 转换完成，DMA 会自动响应这个请求，将数据从 ADC 的数据寄存器传输到内存中，配置如下：
+
+  ADC_DMACmd(ADCx, ENABLE);
+  
+  2.USART发送缓冲区/接收缓冲非区为空过后才发送DMA请求，配置如下：
+
+  // 使能USART的DMA发送请求（发送缓冲区为空时触发）
+  USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
+
+  // 使能USART的DMA接收请求（接收缓冲区非空时触发）
+  USART_DMACmd(USART1, USART_DMAReq_Rx, ENABLE);
+  
+  3. SPI 的发送缓冲区/接收缓冲区非空为空时，硬件会触发 DMA 请求，配置如下：
+
+  // 使能SPI的DMA发送请求（发送缓冲区为空时触发）
+  SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);
+
+  // 使能SPI的DMA接收请求（接收缓冲区非空时触发）
+  SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
+
+  2和3其实就是Tx还是Rx接DMA通道的区别而已。
