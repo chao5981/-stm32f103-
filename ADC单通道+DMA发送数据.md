@@ -122,4 +122,95 @@
     2.注入组：注入数据寄存器也有 4 个(ADC_JDRx)(编译写法：ADC1->JDR1),每个通道对应着自己的寄存器，不会跟规则组那样产生数据覆盖的问题。
 
  7.中断：
+
+    1.规则通道转换结束中断：当规则组的所有通道转换完成时触发中断。
+       启用规则组中断
+       配置NVIC（嵌套向量中断控制器）
+       在中断服务函数中处理数据
+         关键代码如下：
+            ADC_ITConfig(ADC1, ADC_IT_EOC, ENABLE); // 规则组单通道转换完成中断
+            // 或 ADC_ITConfig(ADC1, ADC_IT_EOS, ENABLE); // 规则组所有通道序列完成中断（多通道扫描时）
+
+            NVIC_InitTypeDef NVIC_InitStruct;
+            NVIC_InitStruct.NVIC_IRQChannel = ADC1_IRQn; // ADC1全局中断
+            NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;
+            NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
+            NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+            NVIC_Init(&NVIC_InitStruct);
+            
+            void ADC1_IRQHandler(void) {
+                if (ADC_GetITStatus(ADC1, ADC_IT_EOC) { // 检查规则组中断标志
+                    uint16_t adc_value = ADC_GetConversionValue(ADC1); // 读取数据
+                    ADC_ClearITPendingBit(ADC1, ADC_IT_EOC); // 清除标志
+                }
+            }
     
+    2.注入通道转换结束中断：当注入组的通道转换完成时触发中断（优先级高于规则组）。
+        启用注入组中断
+        配置NVIC(与规则组共用同一中断向量，无需重复配置）
+        在中断服务函数中处理数据
+          关键代码如下：
+            ADC_ITConfig(ADC1, ADC_IT_JEOC, ENABLE); // 注入组转换完成中断
+            
+            NVIC_InitTypeDef NVIC_InitStruct;
+            NVIC_InitStruct.NVIC_IRQChannel = ADC1_IRQn; // ADC1全局中断
+            NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0;
+            NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
+            NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+            NVIC_Init(&NVIC_InitStruct);
+            
+           void ADC1_IRQHandler(void)
+           {
+              if (ADC_GetITStatus(ADC1, ADC_IT_JEOC)) { // 检查注入组中断标志
+                  uint16_t adc_value = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1); // 读取JDR1数据
+                  ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC); // 清除标志
+              }
+           }
+
+      3.模拟看门狗中断:当ADC转换值 低于低阈值 或 高于高阈值 时，触发中断。
+           设置阈值范围（12位ADC，范围0-4095）
+           选择监控的通道
+           启用模拟看门狗中断
+           编写中断服务函数
+           启动ADC并测试
+              关键代码如下：
+                  ADC_AnalogWatchdogThresholdsConfig(ADC1, LowThreshold, HighThreshold);  
+                  // 示例：ADC_AnalogWatchdogThresholdsConfig(ADC1, 1000, 3000); // 监控1.0V~3.0V（假设参考电压3.3V）
+                  
+                  // 监控单个通道（如通道4）：
+                  ADC_AnalogWatchdogSingleChannelConfig(ADC1, ADC_Channel_4);  
+                  
+                  // 或监控所有规则组通道：
+                  ADC_AnalogWatchdogCmd(ADC1, ADC_AnalogWatchdog_AllRegEnable, ENABLE);  
+                  
+                  // 启用AWD中断
+                  ADC_ITConfig(ADC1, ADC_IT_AWD, ENABLE);  
+                  
+                  // 配置NVIC（嵌套向量中断控制器）
+                  NVIC_InitTypeDef NVIC_InitStruct;
+                  NVIC_InitStruct.NVIC_IRQChannel = ADC1_IRQn;       // ADC1中断向量
+                  NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 1; // 抢占优先级
+                  NVIC_InitStruct.NVIC_IRQChannelSubPriority = 1;     // 子优先级
+                  NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+                  NVIC_Init(&NVIC_InitStruct);
+                  
+                  void ADC1_IRQHandler(void) {
+                      if (ADC_GetITStatus(ADC1, ADC_IT_AWD)) {  // 检查AWD中断标志
+                          // 获取触发看门狗的ADC值（需根据实际通道读取）
+                          uint16_t adc_value = ADC_GetConversionValue(ADC1);  
+                          
+                          // 处理异常（例如关闭电源、发送警报）
+                          printf("AWD Alert! ADC Value: %d\n", adc_value);  
+                          
+                          ADC_ClearITPendingBit(ADC1, ADC_IT_AWD);  // 必须清除中断标志！
+                      }
+                  }
+                  
+                  // 初始化ADC后启动ADC
+                  ADC_Cmd(ADC1, ENABLE);  
+                  
+                  // 启动看门狗
+                  ADC_AnalogWatchdogCmd(ADC1, ENABLE);  
+                  
+                  // 开始转换（若使用软件触发）
+                  ADC_SoftwareStartConvCmd(ADC1, ENABLE);  
