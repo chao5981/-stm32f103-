@@ -88,3 +88,66 @@ DMA也可以设置中断，有三种中断类型，见下图。
   SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Rx, ENABLE);
 
   2和3其实就是Tx还是Rx接DMA通道的区别而已。
+
+  后期补充：在使用DMA的时候，有时候会有严格的函数调用要求，由于我这里是软件手动开启和关闭DMA，所以顺序不是严苛。但如果你发现效果不如你的预期，那就得考虑是否是调用函数的顺序问题了。
+
+  这里补充几个常见的DMA和外设联动时的函数调用顺序
+
+  1.USART和DMA
+  
+  先配置USART（波特率、数据位等）。
+
+  再配置DMA（设置源/目标地址、传输长度）。
+
+  最后启用DMA和USART的DMA请求：
+  USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);  // 启用USART的TX DMA请求
+  DMA_Cmd(DMA1_Channel4, ENABLE);                 // 启动DMA通道 、
+  USART_Cmd(USART1, ENABLE);                      // 启动USART
+
+  2.ADC和DMA
+  
+  先配置ADC和DMA
+
+  再校准ADC
+
+  再启动DMA
+  ADC_DMACmd(ADCx, ENABLE);  // 告诉ADC：“请把数据通过DMA发送出去”
+
+  最后再启动ADC转换
+  ADC_SoftwareStartConvCmd(ADCx, ENABLE);
+
+  3.SPI/I2S和DMA
+
+  配置SPI/I2S（时钟极性、数据格式等）。
+
+  配置DMA（设置缓冲区地址）。
+
+  先启用DMA，再启用SPI/I2S：
+  SPI_I2S_DMACmd(SPI1, SPI_I2S_DMAReq_Tx, ENABLE);  // 启用SPI的DMA请求
+  DMA_Cmd(DMA1_Channel3, ENABLE);                   // 启动DMA
+  SPI_Cmd(SPI1, ENABLE);                            // 启动SPI
+
+  4.TIM（定时器）和DMA
+  
+  配置定时器（PWM模式、周期等）。
+
+  配置DMA（目标地址为TIMx_CCR或TIMx_CNT）。
+  
+  先启用DMA，再启动定时器：
+  TIM_DMACmd(TIM1, TIM_DMA_Update, ENABLE);  // 启用TIM的DMA请求
+  DMA_Cmd(DMA1_Channel5, ENABLE);            // 启动DMA
+  TIM_Cmd(TIM1, ENABLE);                     // 启动定时器
+
+  5.SDIO/FSMC和DMA
+
+  初始化SDIO/FSMC（时钟、总线宽度等）。
+
+  配置DMA（设置数据缓冲区）。
+  
+  先启用DMA，再启动传输命令：
+  SDIO_DMACmd(ENABLE);                      // 启用SDIO的DMA请求
+  DMA_Cmd(DMA2_Channel4, ENABLE);           // 启动DMA
+  SDIO_CmdTransfer();                       // 发送读写命令
+
+
+  外设启动顺序：校准/复位（如有）→ DMA配置 → 外设DMA请求启用 → DMA使能(这一步不强制要求，可以放在你要开启DMA的地方) → 外设使能。
