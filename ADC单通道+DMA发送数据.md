@@ -224,15 +224,15 @@
      1.ADC_Mode
         作用：选择ADC是“单干”还是“合作”。例如：独立模式（ADC_Mode_Independent）：1个ADC自己工作;双ADC模式（如ADC_Mode_RegSimult）：2个ADC一起干活，比如一个测电压，另一个测温度。
         
-     2.ADC_ScanConvMode
+     2.ADC_ScanConvMode(与同一组内（规则组或注入组）的通道数量 直接相关，而与跨组的通道总数无关)
         作用：要不要“扫描多个通道”。例如：禁用（DISABLE）：只测1个通道（比如只测PA1的电压）；启用（ENABLE）：按顺序测多个通道（比如PA1、PA2、PA3…）。
         
      3.ADC_ContinuousConvMode
         作用：ADC是“一次测量”还是“连续测量”。例如：单次（DISABLE）：测一次就停下，需要手动触发下一次；连续（ENABLE）：像心电图一样不停测量（适合实时监控）。
 
-     4.ADC_ExternalTrigConv
-        作用：ADC是“一次测量”还是“连续测量”。例如：单次（DISABLE）：测一次就停下，需要手动触发下一次；连续（ENABLE）：像心电图一样不停测量（适合实时监控）。
-
+     4.ADC_ExternalTrigConv(只针对规则组通道的配置，注入组通道通过函数配置)
+        作用：ADC是由什么触发，可以分为软件触发(ADC_ExternalTrigConv_None)和常见的TIM1捕获，TIM2触发，外部中断线11。
+        
      5.ADC_NbrOfChannel
         作用：作用：告诉ADC要扫描几个通道（如果启用了扫描模式）。例如：设为3，就是扫描通道1、2、3。
 
