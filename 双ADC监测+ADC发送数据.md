@@ -129,6 +129,34 @@
                     uint16_t adc1_data = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
                     uint16_t adc2_data = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
 
-    6.混合的规则/注入同步模式：也就是一个ADC是扫描规则组的通道，另外一个ADC扫描注入组，当发生
-                    
+    6.混合的规则/注入同步模式：也就是一个ADC是扫描规则他自己的组，设置为定时器/软件触发，另外一个ADC扫描他自己的注入组，设置为中断触发，当发生中断时；直接取出注入组寄存器的数据。
+              关键代码：
+                  //规则组设置
+                  ADC_InitStruct.ADC_Mode = ADC_Mode_RegSimult;  // 规则组同步
+                  ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO; // 定时器触发
+                  ADC_Init(ADC1, &ADC_InitStruct);
+
+                  //DMA正常接收ADC1组的数据
+                  
+                  //注入组设置
+                  ADC_InitStruct.ADC_Mode = ADC_Mode_RegSimult; // 注入组同步
+                  ADC_InitStruct.ADC_ExternalTrigInjecConv = ADC_ExternalTrigInjecConv_Ext_IT15; // EXTI触发
+                  ADC_Init(ADC2, &ADC_InitStruct);  
+                  
+                  //中断与数据处理
+                  // 注入组中断服务函数
+                  void ADC1_2_IRQHandler(void)
+                  {
+                      if (ADC_GetITStatus(ADC1, ADC_IT_JEOC)) {  // 检查注入完成标志
+                          uint16_t adc1_inj = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
+                          uint16_t adc2_inj = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
+                          ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
+                      }
+                      if (ADC_GetITStatus(ADC1, ADC_IT_EOC)) {   // 规则组完成标志
+                          uint32_t adc_rule = ADC1->DR;          // 读取规则组数据
+                          ADC_ClearITPendingBit(ADC1, ADC_IT_EOC);
+                      }
+                  }
         
+
+    7.混合的同步规则模式+交替触发模式：ADC1正常扫描一个规则通道(一条线)，设置定时器/软件触发；ADC2也要扫描这个
