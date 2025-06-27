@@ -1,1 +1,37 @@
+  在单个ADC中，ADC 采集需要在一个通道采集并且转换完成后才会进行下一个通道的采集，而双重ADC机制可以使用两个 ADC 同时采样一个或者多个通道，大大提高了采样率。
 
+  下面我讲介绍双ADC模式的各类模式，配置步骤和关键的代码展示(关键代码由AI生成，AI对于ADC这一部分代码的细节处理有时候存在问题，请谨慎甄别)：
+
+      1.同步规则模式（ADC_Mode_RegSimult）：ADC1和ADC2同时测量同一组“常规信号”（规则组），结果合并到ADC1_DR寄存器（ADC1数据在低16位，ADC2在高16位）。ADC1为主，ADC2为从。
+          步骤：
+              1.GPIO初始化：配置ADC通道对应的引脚为模拟输入。
+              2.时钟使能：开启ADC1、ADC2和DMA时钟
+              3.DMA配置：绑定到ADC1_DR，存储32位数据（高低16位分离）。
+              4.ADC模式配置：ADC1和ADC2均设置为同步规则模式。ADC1：主设备，外部触发（实际证明软件触发和硬件触发均可）;ADC2：从设备，软件触发（实际由ADC1同步触发）;
+              5.校准与启动：校准后启动硬件触发/软件触发。ADC1可以选择调用俩种形式ADC_SoftwareStartConvCmd/ADC_ExternalTrigConvCmd，ADC2必须选择调用硬件触发转换ADC_ExternalTrigConvCmd。
+                  关键代码：
+                  // 1. ADC1配置（主）
+                  ADC_InitTypeDef ADC_InitStruct;
+                  ADC_InitStruct.ADC_Mode = ADC_Mode_RegSimult;      // 同步规则模式
+                  ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO; // TIM2触发
+                  ADC_Init(ADC1, &ADC_InitStruct);
+                  
+                  // 2. ADC2配置（从）
+                  ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None; // 软件触发（实际由ADC1同步）
+                  ADC_Init(ADC2, &ADC_InitStruct);
+                  
+                  // 3. DMA配置（32位传输）
+                  DMA_InitStruct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word; // ADC寄存器数据为32位
+                  DMA_InitStruct.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;            // 内存存储32位
+                  DMA_Init(DMA1_Channel1, &DMA_InitStruct);
+                  
+                  // 4. 启动定时器触发
+                  TIM_Cmd(TIM2, ENABLE);
+
+      2.同步注入模式（ADC_Mode_InjSimult）：ADC1和ADC2同步转换同一注入通道组，结果分别存到ADC1_JDRx和ADC2_JDRx寄存器中。ADC1为主，ADC2为从。
+          步骤：
+              1.GPIO初始化：配置注入通道引脚。
+              2.ADC配置：ADC1和ADC2均设置为同步注入模式；触发源配置为外部触发（如EXTI）。
+              3.校准与启动：校准后启动外部触发。都选择硬件触发转换ADC_ExternalTrigConvCmd。
+
+      3.
