@@ -55,6 +55,7 @@
           步骤：
               1.GPIO初始化：配置同一通道的引脚。
               2.ADC配置：ADC1和ADC2均设置为快速交叉模式；触发源为定时器（间隔7个ADCCLK）。
+              3.DMA配置，基本上和同步相同
               3.启动定时器：确保触发间隔匹配。
                   关键代码：
                   // 1. ADC配置
@@ -74,3 +75,10 @@
                   DMA_InitStruct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
                   DMA_InitStruct.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
                   // ...其余配置同同步规则模式
+
+      4.慢速交替模式（ADC_Mode_SlowInterl）：ADC1和ADC2交替转换同一个规则通道（只能单通道）。
+          步骤：
+              1.GPIO初始化：配置ADC通道引脚为模拟输入。
+              2.ADC模式设置：设置为慢速交替模式
+              3.启动定时器：确保触发间隔匹配。
+              4.
