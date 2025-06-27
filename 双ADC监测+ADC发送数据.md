@@ -204,3 +204,25 @@
                     TIM_Cmd(TIM3, ENABLE);          // 启动TIM3触发交叉采样
                                         
                                                             
+
+
+  在本次程序中，我将采用同步规则模式，下面讲解关键配置步骤
+
+
+  DMA部分：
+
+      1.由于同步规则模式的存储时ADC2的数据放在高16位，ADC1的数据放置低16位，所以数据大小是一字
+      2.缓冲区数据个数为1个，就是把规则组寄存器的数据全部取出来
+
+
+  ADC部分：
+
+      1.ADC1结构体中ADC_ExternalTrigConv可以选择软件开启。这里需要特别澄清一下，AI认为其只能通过硬件触发才能实现同步规则模式，但是实际上软件也是可以的，参考手册上也没有明确说明必须是硬件触发。
+      2.ADC2结构体中ADC_ExternalTrigConv选择软件开启，虽然其测数据的时间是由ADC1控制的
+      3.配置规则组的时序中ADC_RegularChannelConfig()的第三个参数(也就是周期)，ADC1和ADC2需要保持一致
+      4.在开启ADC1软件触发转换(ADC_SoftwareStartConvCmd(ADCx_1, ENABLE))前必须先开启ADC2硬件触发(ADC_ExternalTrigConvCmd(ADCx_2,ENABLE))，因为ADC2采集数据是由ADC1控制的，如果调用函数的时间不对，将会导致同步失效。(即ADC1数据正常，ADC2数据永远不会变)
+
+
+  主函数:
+
+      1.将取出的数据进行位运算，得到ADC1和ADC2采集的数据。
