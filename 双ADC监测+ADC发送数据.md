@@ -129,34 +129,78 @@
                     uint16_t adc1_data = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
                     uint16_t adc2_data = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
 
-    6.混合的规则/注入同步模式：也就是一个ADC是扫描规则他自己的组，设置为定时器/软件触发，另外一个ADC扫描他自己的注入组，设置为中断触发，当发生中断时；直接取出注入组寄存器的数据。
-              关键代码：
-                  //规则组设置
-                  ADC_InitStruct.ADC_Mode = ADC_Mode_RegSimult;  // 规则组同步
-                  ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO; // 定时器触发
-                  ADC_Init(ADC1, &ADC_InitStruct);
+    6.混合的规则/注入同步模式：俩个ADC同时开启了规则组通道和注入组通道。一开始都是在测量规则组通道的数据；触发外接条件后，测量注入组通道的数据。ADC1的配置和ADC2的配置一模一样。
 
-                  //DMA正常接收ADC1组的数据
-                  
-                  //注入组设置
-                  ADC_InitStruct.ADC_Mode = ADC_Mode_RegSimult; // 注入组同步
-                  ADC_InitStruct.ADC_ExternalTrigInjecConv = ADC_ExternalTrigInjecConv_Ext_IT15; // EXTI触发
-                  ADC_Init(ADC2, &ADC_InitStruct);  
-                  
-                  //中断与数据处理
-                  // 注入组中断服务函数
-                  void ADC1_2_IRQHandler(void)
-                  {
-                      if (ADC_GetITStatus(ADC1, ADC_IT_JEOC)) {  // 检查注入完成标志
-                          uint16_t adc1_inj = ADC_GetInjectedConversionValue(ADC1, ADC_InjectedChannel_1);
-                          uint16_t adc2_inj = ADC_GetInjectedConversionValue(ADC2, ADC_InjectedChannel_1);
-                          ADC_ClearITPendingBit(ADC1, ADC_IT_JEOC);
-                      }
-                      if (ADC_GetITStatus(ADC1, ADC_IT_EOC)) {   // 规则组完成标志
-                          uint32_t adc_rule = ADC1->DR;          // 读取规则组数据
-                          ADC_ClearITPendingBit(ADC1, ADC_IT_EOC);
-                      }
-                  }
-        
+    7.混合的同步规则模式+交替触发模式：俩个ADC同步测规则组信号时，紧急信号来了就切换成交替触发模式测量注入组通道。
+        关键步骤：
+            1.GPIO初始化：配置注入通道引脚。
+            2.ADC模式设置：其中一个ADC为规则组同步模式，另外一个为独立模式
+            3.手动触发转换
+            4.规则组正常配置DMA，到交替触发时手动读取
+                关键代码：
+                    // ========== ADC1配置（主设备，规则组同步） ==========
+                    ADC_InitTypeDef ADC_InitStruct;
+                    ADC_InitStruct.ADC_Mode = ADC_Mode_RegSimult;          // 规则组同步模式
+                    ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO; // TIM2触发规则组
+                    ADC_InitStruct.ADC_ContinuousConvMode = ENABLE;        // 连续转换
+                    ADC_Init(ADC1, &ADC_InitStruct);
+                    
+                    // 配置规则组通道（例如通道10）
+                    ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_55Cycles5);
+                    
+                    // ========== ADC2配置（从设备，注入组交替触发） ==========
+                    ADC_InitStruct.ADC_Mode = ADC_Mode_Independent;        // 独立模式（注入组单独控制）
+                    ADC_InitStruct.ADC_ExternalTrigInjecConv = ADC_ExternalTrigInjecConv_None; // 软件触发
+                    ADC_Init(ADC2, &ADC_InitStruct);
+                    
+                    // 配置注入组通道（2个通道交替）
+                    ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_55Cycles5); // 注入通道1
+                    ADC_InjectedChannelConfig(ADC2, ADC_Channel_12, 2, ADC_SampleTime_55Cycles5); // 注入通道2
+                    ADC_InjectedSequencerLengthConfig(ADC2, 2);           // 注入组长度=2
+                    
+                    // 启动定时器触发规则组
+                    TIM_Cmd(TIM2, ENABLE);
+                    
+                    // 手动交替触发注入组（在中断中调用）
+                    void Trigger_InjectedGroup() 
+                    {
+                        static uint8_t toggle = 0;
+                        if (toggle == 0) {
+                            ADC_SoftwareStartInjectedConvCmd(ADC1, ENABLE); // 触发ADC1注入组
+                        } else {
+                            ADC_SoftwareStartInjectedConvCmd(ADC2, ENABLE); // 触发ADC2注入组
+                        }
+                        toggle ^= 1;
+                    }
 
-    7.混合的同步规则模式+交替触发模式：ADC1正常扫描一个规则通道(一条线)，设置定时器/软件触发；ADC2也要扫描这个
+
+    8.交叉模式+同步注入模式：一开始俩个ADC在交替采集一个规则通道组，紧急信号来临后各自测自己的注入通道组
+        关键步骤：
+            1.GPIO初始化：配置注入通道引脚。
+            2.ADC模式设置：其中一个ADC为注入组同步模式，另外一个为交叉模式
+            3.定时器启动
+            4.DMA正常配置，到中断处取注入组寄存器的数据
+                关键代码：
+                    // ========== ADC1配置（主设备，注入组同步） ==========
+                    ADC_InitStruct.ADC_Mode = ADC_Mode_InjSimult;          // 注入组同步模式
+                    ADC_InitStruct.ADC_ExternalTrigInjecConv = ADC_ExternalTrigInjecConv_Ext_IT15; // EXTI触发注入组
+                    ADC_Init(ADC1, &ADC_InitStruct);
+                    
+                    // 配置注入组通道（同步转换）
+                    ADC_InjectedChannelConfig(ADC1, ADC_Channel_11, 1, ADC_SampleTime_55Cycles5);
+                    ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_55Cycles5);
+                    
+                    // ========== ADC2配置（从设备，规则组交叉） ==========
+                    ADC_InitStruct.ADC_Mode = ADC_Mode_FastInterl;         // 快速交叉模式
+                    ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T3_TRGO; // TIM3触发交叉采样
+                    ADC_Init(ADC2, &ADC_InitStruct);
+                    
+                    // 配置规则组交叉通道（同一通道交替采样）
+                    ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_55Cycles5);
+                    ADC_RegularChannelConfig(ADC2, ADC_Channel_10, 1, ADC_SampleTime_55Cycles5);
+                    
+                    // 启动外部中断和定时器
+                    EXTI_Cmd(EXTI_Line15, ENABLE);  // 使能EXTI15触发注入组
+                    TIM_Cmd(TIM3, ENABLE);          // 启动TIM3触发交叉采样
+                                        
+                                                            
