@@ -67,6 +67,8 @@ NVIC_IRQChannel：指定配置的中断源，但是我们打开枚举值，发�
 
 ![image](https://github.com/user-attachments/assets/01427af7-3c22-419b-b62e-24b581338304)
 
+后期补充：在中断函数中stm32f10x_it.c中，中断函数的名称必须是中断源，不然无法进入中断函数。
+
 
 那是因为GPIO的接口和EXTIx_IQN有个映射(即把一个具体的硬件资源（比如某个GPIO引脚）关联到某个内部功能（比如EXTI线路、某个定时器通道、ADC输入通道等）上)，映射关系如下。
 ![image](https://github.com/user-attachments/assets/c4508888-32d3-417f-8d27-795c5a184b6c)
