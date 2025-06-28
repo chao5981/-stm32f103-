@@ -61,6 +61,11 @@ GPIO的输入引脚检测到电平的变化，并和EXTI的边沿检测电路进
 NVIC_IRQChannel：指定配置的中断源，但是我们打开枚举值，发现根本没有对应的GPIO接口啊
 ![image](https://github.com/user-attachments/assets/af1004fc-ba91-4598-8aee-10dfd2e55bee)
 
+后期添加：这里值得一说的是，中断源没有这么少。我们打开stm32f10x.h头文件翻到167行，下面又很多的if宏定义，stm32f103VET6说用的芯片属于STM32F10X_HD系列，因此还有如下的中断源
+
+![image](https://github.com/user-attachments/assets/01427af7-3c22-419b-b62e-24b581338304)
+
+
 那是因为GPIO的接口和EXTIx_IQN有个映射(即把一个具体的硬件资源（比如某个GPIO引脚）关联到某个内部功能（比如EXTI线路、某个定时器通道、ADC输入通道等）上)，映射关系如下。
 ![image](https://github.com/user-attachments/assets/c4508888-32d3-417f-8d27-795c5a184b6c)
 ![image](https://github.com/user-attachments/assets/03326240-4d49-4262-a49c-ac282fbcc769)
