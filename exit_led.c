@@ -54,4 +54,6 @@ void Key_EXTI_Configuration()
 	EXTIstructure.EXTI_LineCmd=ENABLE;
 	//初始化EXTI结构体
 	EXTI_Init(&EXTIstructure);
+	//手动清除一次中断标志位
+	EXTI_ClearITPendingBit(KEY1_EXTI_LINE);
 }
