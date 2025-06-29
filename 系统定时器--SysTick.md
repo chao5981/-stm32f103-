@@ -29,33 +29,35 @@
 这里我用AI跑了一个，大家仅供参考，到后面有需要的话，我再进行特定的编写。
 
 在中断函数：
-uint32_t system_tick = 0;
-void SysTick_Handler(void)
-{
-    system_tick++;  // 每 1ms 进入中断一次，就+1，单位是毫秒
-}
 
-在自己的头文件中:
-void led_blink_logic(void)
-{
-    static uint32_t last = 0;
-    if(system_tick - last >= 500)  // 每500ms执行一次
-    {
-        Toggle_LED();
-        last = system_tick;
-    }
-}
+        uint32_t system_tick = 0;
+        void SysTick_Handler(void)
+        {
+            system_tick++;  // 每 1ms 进入中断一次，就+1，单位是毫秒
+        }
+        
+        在自己的头文件中:
+        void led_blink_logic(void)
+        {
+            static uint32_t last = 0;
+            if(system_tick - last >= 500)  // 每500ms执行一次
+            {
+                Toggle_LED();
+                last = system_tick;
+            }
+        }
 
 在头文件中:
-int main(void)
-{
-    SysTick_Config(SystemCoreClock / 1000);  // 每1ms触发一次SysTick_Handler
 
-    while(1)
-    {
-        led_blink_logic();  // 不是延时，而是判断是否“该闪了”
-        //其他的任务照样可以跑
-    }
-}
+        int main(void)
+        {
+            SysTick_Config(SystemCoreClock / 1000);  // 每1ms触发一次SysTick_Handler
+        
+            while(1)
+            {
+                led_blink_logic();  // 不是延时，而是判断是否“该闪了”
+                //其他的任务照样可以跑
+            }
+        }
 
 
