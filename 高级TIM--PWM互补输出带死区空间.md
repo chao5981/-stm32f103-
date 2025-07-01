@@ -125,8 +125,6 @@
 
   定时器从0开始累加计数（就像秒表计时）。当计数值 < CCR：输出高电平。当计数值 ≥ CCR：输出低电平。当计数值等于自动重载寄存器(ARR)的值时，计数器(CNT)重置为0，开始下一个周期。这便是其工作原理。
 
-  注意，这个流程可不经过重复定时器(RCR)，看回最上边的功能框架图，计数器(CNT)是直接搭了线到比较寄存器(CRR)了(图上的大箭头)
-
 
   好，PWM输出就算完成了，但是在实际工程中，经常还会遇到一个问题，在一些外接的设备中，会存在H桥电路(见下图)，如果Q1和Q2同时导通为高电平，那就发生短路直接烧毁电路，那怎么办呢？高级TIM把这件事也考虑进去了，它在每一个输出引脚增加了互补输出引脚。所谓互补，就是和输出引脚输出的电平反过来，那么一个接到Q1，一个接到Q2，这样子俩者的信号永远是不同的，那就从理论上可以避免短路的情况发生了吗。高级TIM中你只需要配置相关结构体成员，无需软件操作，高级TIM就会通过输出引脚和互补输出引脚产生同时的相反的PWM信号，理论上确保不会短路！
   ![image](https://github.com/user-attachments/assets/ecba76cb-481f-4cbb-8cb7-cda1de3988d4)
@@ -154,7 +152,9 @@
       总死区时间 ≥ 器件延迟 + 驱动延迟。
       3. 安全裕量:额外增加20%~50%的余量，应对温度、电压波动等。
 
-  确定了死区时间，如何配置死区时间？配置死区的时间由三个参数决定，一个是一个是时基结构体TIM_TimeBaseInitTypeDef中的时钟分频因子TIM_ClockDivision，一个是死区刹车结构体TIM_BDTRInitStructure中的死区时长TIM_DeadTime。
+  确定了死区时间，如何配置死区时间？配置死区的时间由三个参数决定，一个定时器的内部时钟CK_CNT的频率。是一个是时基结构体TIM_TimeBaseInitTypeDef中的时钟分频因子TIM_ClockDivision，一个是死区刹车结构体TIM_BDTRInitStructure中的死区时长TIM_DeadTime。
+
+  死区的公式为 DeadTime=TIM_ClockDivision/CK_CNT*TIM_DeadTime.例如：定时器的内部时钟是72MHZ，TIM_ClockDivision选择1分频，则T_dts = 1 / 72MHz ≈ 13.89ns，若TIM_DeadTime=11，则死区时间 = 11 × 13.89ns ≈ 152ns。
 
 
 这样基本上就没有直通的风险了，但是如果外接的设备过流/过压了，那该怎么办呢？
@@ -181,7 +181,71 @@
 
 1.TIM_TimeBaseInitTypeDef(时基结构体)
 
-    1.
+    1.TIM_ClockDivision：时钟分频因子，用于配置死区时长，基本TIM和通用TIM都用不上。
+    2. TIM_Period：自动重装载寄存器（ARR）的值，用于设定定时器计数器（CNT）的计数上限。
+    3.TIM_Prescaler：预分频器（PSC，Prescaler）的值。分频后时钟频率 = 时钟源频率 / (TIM_Prescaler + 1)。
+    4.TIM_CounterMode：定时器的计数模式，用于决定计数器是向上计数、向下计数还是中央对齐（向上 / 向下）计数。基本TIM和通用TIM都用不上。
+
+        这里简要说一下计数模式在PWM信号产生的区别：
+            如果是单纯的向上计数，那么生成的PWM信号如图所示：
+            ![image](https://github.com/user-attachments/assets/1f0a8c8f-e6ef-475c-920e-e072c1cbacb5)
+    
+            如果是中央对齐计数，那么生成的PWM信号如图所示：
+            ![image](https://github.com/user-attachments/assets/2ec63d9f-36f8-447e-8aa7-78f91621e25d)
+    
+        所以选择哪种计数方式看设备对PWM信号波形的需求，当然大部分情况下都是向上计数。
+
+    5.TIM_RepetitionCounter：重复计数器的值，仅在高级控制定时器中有效。它用于在产生更新事件之前，指定重复计数器重复计数的次数。
+    主要用于生成高级 PWM 波形，以及在需要更精确控制更新事件触发时机的场合。当然一般情况下，输出生成PWM信号时，我们设置为0。
+
+2.TIM_OCInitTypeDef(输出和互补输出结构体)
+
+    1.TIM_OCMode：输出比较模式，用于指定定时器输出比较通道的工作模式
+    2.TIM_OutputState：主输出使能状态，用于使能或禁止定时器输出比较通道的主输出。
+    3.TIM_OutputNState：互补输出使能状态，用于使能或禁止互补输出通道。
+    4.TIM_Pulse：脉冲值，即输出比较的比较值。在 PWM 模式下，该值决定了 PWM 波形的占空比。
+    例如：在 PWM 模式 1 下，若定时器周期为 100，TIM_Pulse 设置为 30，则占空比为 30%。
+    
+    5.TIM_OCPolarity：主输出极性，用于定义当输出比较通道有效时，输出信号的电平状态。一般设置为高电平有效--high
+    6.TIM_OCNPolarity：互补输出极性，仅在使用互补输出功能时有效，用于定义互补输出通道有效时的电平状态。一般设置为高电平有效--high
+    7. TIM_OCIdleState:主输出在空闲状态下的电平状态，空闲状态是指当产生刹车信号或进入待机模式等特定情况下输出的电平。一般设置为低电平--Reset
+    8. TIM_OCNIdleState:互补输出在空闲状态下的电平状态，同样是在产生刹车信号或进入待机模式等特定情况下互补输出通道的电平。一般设置为低电平--Reset
+
+3.TIM_BDTRInitStructure(刹车和死区结构体)
+
+    1.TIM_OSSRState：运行模式（非刹车时）下的输出状态
+    注意：这里参数ENABLE表示正常输出，DISABLE表示关闭输出。
+
+    2.TIM_OSSIState：空闲模式（刹车时）下的输出状态
+    注意：这里参数ENABLE表示强制安全电平，DISABLE表示关闭输出。
+
+    3.TIM_BreakPolarity：设置刹车输入信号（BKIN引脚）的有效极性。一般选择高电平有效。
+
+    4.TIM_LOCKLevel：配置寄存器写保护级别，防止误修改配置。Level_1是最低保护，Level_3是最高保护
+    5.TIM_Break：使能或禁用刹车功能。
+    6.TIM_DeadTime：设置死区时间长度
+    7.TIM_AutomaticOutput：是否允许硬件自动恢复PWM输出（刹车解除后）
+
+
+上述就是用高级TIM输出PWM信号会用到的结构体，后面还有一个捕获寄存器的结构体下一节再讲吧。
+
+想必大家还有疑惑的点是PWM信号的占空比，PWM周期应该选什么数好。
+
+这个我这里无能为例，因为每一个不同的电机或者外接设备要求的PWM信号肯定是有区别的，所以我没法告诉大家一个能完美移植的PWM信号的参数，我只能告诉大家设置PWM信号的原理。
+
+首先如何确定PWM周期，我这里给大家汇总一下吧
+
+PWM周期由定时器的时基产生，PWM本质上是一个个事件发生组成在一块的结果，而产生一次事件是计数器(CNT)，定时器内部频率CK_CNT和自动重载寄存器(ARR)共同决定的。
+
+计算公式为：PWM周期=(ARR+1)/CK_CNT,而CK_CNT=CK_INT/(PSC+1);代入得：PWM周期=(ARR+1)*(PSC+1)/CK_INT。
+
+    例如：CK_INT = 72MHz（STM32F1默认值）。PSC = 71（分频后CK_CNT = 72MHz / (71+1) = 1MHz）。ARR = 999（计数器从0计数到999）。
+    
+    那么结果为：PWM周期=(999+1)/1MHZ=1000us(1MHz = 10⁶ Hz)
+
+占空比就根据外部设备要求的设置即可。
+
+        
 
 
 
