@@ -177,7 +177,7 @@
 
 接下来讲解高级TIM的所有结构体
 
-1.
+1.TIM_TimeBaseInitTypeDef(时基结构体)
 
 
 
