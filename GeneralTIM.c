@@ -5,7 +5,7 @@
 void General_TIM_NVIC_Config(void)
 {
 	NVIC_InitTypeDef General_TIM_NVIC_Structure;
-	//·Ö×é
+	//åˆ†ç»„
 	 NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);	
 	
 	General_TIM_NVIC_Structure.NVIC_IRQChannel=GENERAL_TIM_IRQ;
@@ -22,8 +22,11 @@ void General_TIM_NVIC_Config(void)
 void General_TIM_GPIO_Config(void)
 {
 	GPIO_InitTypeDef General_TIM_GPIO_Structure;
+
+	//å¼€å¯æ—¶é’Ÿ
 	GENERAL_TIM_CH1_GPIO_CLK_FUN(GENERAL_TIM_CH1_GPIO_CLK,ENABLE);
-	
+
+	//é…ç½®GPIOç»“æ„ä½“
 	General_TIM_GPIO_Structure.GPIO_Mode=GPIO_Mode_IN_FLOATING;
 	General_TIM_GPIO_Structure.GPIO_Pin=GENERAL_TIM_CH1_PIN;
 	GPIO_Init(GENERAL_TIM_CH1_PORT,&General_TIM_GPIO_Structure);
@@ -34,9 +37,10 @@ void General_TIM_Config(void)
 {
 	TIM_ICInitTypeDef General_TIM_IC_Structure;
 	TIM_TimeBaseInitTypeDef General_TIM_OC_Structure;
+	//å¼€å¯æ—¶é’Ÿ
 	GENERAL_TIM_APBxClock_FUN(GENERAL_TIM_CLK,ENABLE);
 	
-	/*******Ê±»ù½á¹¹ÌåÅäÖÃ*********/
+	/*******æ—¶åŸºç»“æ„ä½“é…ç½®*********/
 	General_TIM_OC_Structure.TIM_ClockDivision=TIM_CKD_DIV1;
 	
 	General_TIM_OC_Structure.TIM_CounterMode=TIM_CounterMode_Up;
@@ -49,7 +53,7 @@ void General_TIM_Config(void)
 	
 	TIM_TimeBaseInit(GENERAL_TIM,&General_TIM_OC_Structure);
 	
-	/******²¶»ñ½á¹¹ÌåÅäÖÃ*********/
+	/******æ•è·ç»“æ„ä½“é…ç½®*********/
 	General_TIM_IC_Structure.TIM_Channel=GENERAL_TIM_CHANNEL_x;
 	
 	General_TIM_IC_Structure.TIM_ICFilter=0x04;
@@ -70,11 +74,11 @@ void GENERAL_TIM_Init(void)
 	General_TIM_NVIC_Config();
 	DMA_GeneralTIM_Init();
 	General_TIM_Config();
-	// Çå³ı¸üĞÂºÍ²¶»ñÖĞ¶Ï±êÖ¾Î»
-  TIM_ClearFlag(GENERAL_TIM, TIM_FLAG_Update|GENERAL_TIM_IT_CCx);	
-  // ¿ªÆô¸üĞÂºÍ²¶»ñÖĞ¶Ï  
+	// æ¸…é™¤æ›´æ–°å’Œæ•è·ä¸­æ–­æ ‡å¿—ä½
+	TIM_ClearFlag(GENERAL_TIM, TIM_FLAG_Update|GENERAL_TIM_IT_CCx);	
+	// å¼€å¯æ›´æ–°å’Œæ•è·ä¸­æ–­  
 	TIM_ITConfig (GENERAL_TIM, TIM_IT_Update | GENERAL_TIM_IT_CCx, ENABLE );
-	// Ê¹ÄÜ¼ÆÊıÆ÷
+	// ä½¿èƒ½è®¡æ•°å™¨
 	TIM_Cmd(GENERAL_TIM, ENABLE);
 	
 }
