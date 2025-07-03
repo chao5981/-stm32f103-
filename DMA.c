@@ -4,9 +4,11 @@
 void DMA_GeneralTIM_Init(void)
 {
 	DMA_InitTypeDef DMA_GeneralTIM_Structure;
-	
+
+	//开启DMA时钟
 	DMA_General_TIMx_CLK_FUN(DMA_General_TIMx_CLK,ENABLE);
-	
+
+	//配置DMA结构体
 	DMA_GeneralTIM_Structure.DMA_BufferSize=DMA_General_TIMx_Capture_Data_Num;
 	
 	DMA_GeneralTIM_Structure.DMA_DIR=DMA_DIR_PeripheralSRC;
