@@ -4,71 +4,71 @@
 
 static __IO u32 TimingDelay;
 /**
- * @brief ³õÊ¼»¯ÏµÍ³¼ÆÊ±Æ÷--10us¼¶
- * @param ÎŞ
- * @retval ÎŞ
+ * @brief åˆå§‹åŒ–åˆ©ç”¨ä¸­æ–­çš„ç³»ç»Ÿè®¡æ—¶å™¨--10usçº§
+ * @param æ— 
+ * @retval æ— 
  */
 void SysTickInit_10us(void)
 {
-	/* SystemFrequency / 1000    1msÖĞ¶ÏÒ»´Î
-	 * SystemFrequency / 100000	 10usÖĞ¶ÏÒ»´Î
-	 * SystemFrequency / 1000000 1usÖĞ¶ÏÒ»´Î
+	/* SystemFrequency / 1000    1msä¸­æ–­ä¸€æ¬¡
+	 * SystemFrequency / 100000	 10usä¸­æ–­ä¸€æ¬¡
+	 * SystemFrequency / 1000000 1usä¸­æ–­ä¸€æ¬¡
 	 */
-	//ÆäÖĞSystemCoreClock=72000000
-	//ÅĞ¶Ï¶¨Ê±Æ÷ÊÇ·ñÅäÖÃÕıÈ·£¬ÈôÊ§°ÜÔò·µ»Ø1
+	//å…¶ä¸­SystemCoreClock=72000000
+	//åˆ¤æ–­å®šæ—¶å™¨æ˜¯å¦é…ç½®æ­£ç¡®ï¼Œè‹¥å¤±è´¥åˆ™è¿”å›1
 	if(SysTick_Config(SystemCoreClock / 100000))
 	{
 		while(1);
 	}
 }
 /**
- * @brief ³õÊ¼»¯ÏµÍ³¼ÆÊ±Æ÷--ms¼¶
- * @param ÎŞ
- * @retval ÎŞ
+ * @brief åˆå§‹åŒ–åˆ©ç”¨ä¸­æ–­çš„ç³»ç»Ÿè®¡æ—¶å™¨--msçº§
+ * @param æ— 
+ * @retval æ— 
  */
 void SysTickInit_1ms(void)
 {
-	/* SystemFrequency / 1000    1msÖĞ¶ÏÒ»´Î
-	 * SystemFrequency / 100000	 10usÖĞ¶ÏÒ»´Î
-	 * SystemFrequency / 1000000 1usÖĞ¶ÏÒ»´Î
+	/* SystemFrequency / 1000    1msä¸­æ–­ä¸€æ¬¡
+	 * SystemFrequency / 100000	 10usä¸­æ–­ä¸€æ¬¡
+	 * SystemFrequency / 1000000 1usä¸­æ–­ä¸€æ¬¡
 	 */
-	//ÆäÖĞSystemCoreClock=72000000
-	//ÅĞ¶Ï¶¨Ê±Æ÷ÊÇ·ñÅäÖÃÕıÈ·£¬ÈôÊ§°ÜÔò·µ»Ø1
+	//å…¶ä¸­SystemCoreClock=72000000
+	//åˆ¤æ–­å®šæ—¶å™¨æ˜¯å¦é…ç½®æ­£ç¡®ï¼Œè‹¥å¤±è´¥åˆ™è¿”å›1
 	if(SysTick_Config(SystemCoreClock / 1000))
 	{
 		while(1);
 	}
 }
 /**
- * @brief µÍCPUÔİÓÃµÄ10us¼ÆÊ±Æ÷
- * @param ÑÓ³ÙusÊ±¼ä
- * @retval ÎŞ
+ * @brief ä½CPUæš‚ç”¨çš„10usè®¡æ—¶å™¨
+ * @param å»¶è¿Ÿusæ—¶é—´
+ * @retval æ— 
  */
 void SysTick_EXTI_Delay_10us(__IO uint32_t time)
 {
 	TimingDelay=time;
-	//Ê¹ÄÜ¼ÆÊ±Æ÷
+	//ä½¿èƒ½è®¡æ—¶å™¨
 	SysTick->CTRL |=  SysTick_CTRL_ENABLE_Msk;
-	//ÈÃÖĞ¶Ïº¯Êıµ÷ÓÃºó×Ô¼õ£¬Ö±µ½¼õµ½0²ÅÍË³ö³ÌĞò£¬ÕâÑùÀíÂÛÉÏ¾ÍÊÇ10us
+	//è®©ä¸­æ–­å‡½æ•°è°ƒç”¨åè‡ªå‡ï¼Œç›´åˆ°å‡åˆ°0æ‰é€€å‡ºç¨‹åºï¼Œè¿™æ ·ç†è®ºä¸Šå°±æ˜¯10us
 	while(TimingDelay!=0);
 }
 /**
- * @brief µÍCPUÔİÓÃµÄ1ms¼ÆÊ±Æ÷
- * @param ÑÓ³ÙusÊ±¼ä
- * @retval ÎŞ
+ * @brief ä½CPUæš‚ç”¨çš„1msè®¡æ—¶å™¨
+ * @param å»¶è¿Ÿusæ—¶é—´
+ * @retval æ— 
  */
 void SysTick_EXTI_Delay_1ms(__IO uint32_t time)
 {
 	TimingDelay=time;
-		//Ê¹ÄÜ¼ÆÊ±Æ÷
+		//ä½¿èƒ½è®¡æ—¶å™¨
 	SysTick->CTRL |=  SysTick_CTRL_ENABLE_Msk;
-	//ÈÃÖĞ¶Ïº¯Êıµ÷ÓÃºó×Ô¼õ£¬Ö±µ½¼õµ½0²ÅÍË³ö³ÌĞò£¬ÕâÑùÀíÂÛÉÏ¾ÍÊÇ1ms
+	//è®©ä¸­æ–­å‡½æ•°è°ƒç”¨åè‡ªå‡ï¼Œç›´åˆ°å‡åˆ°0æ‰é€€å‡ºç¨‹åºï¼Œè¿™æ ·ç†è®ºä¸Šå°±æ˜¯1ms
 	while(TimingDelay!=0);
 }
 /**
- * @brief ¸øÖĞ¶Ïº¯Êı½øĞĞµ÷ÓÃ£¬´ïµ½Ã¿¸ôÒ»¶ÎÊ±¼ä¾ÍÈÃTimingDelayµİ¼õµÄÄ¿µÄ
- * @param ÎŞ
- * @retval ÎŞ
+ * @brief ç»™ä¸­æ–­å‡½æ•°è¿›è¡Œè°ƒç”¨ï¼Œè¾¾åˆ°æ¯éš”ä¸€æ®µæ—¶é—´å°±è®©TimingDelayé€’å‡çš„ç›®çš„
+ * @param æ— 
+ * @retval æ— 
  */
 void TimingDelay_Reduction(void)
 {
@@ -79,38 +79,38 @@ void TimingDelay_Reduction(void)
 }
 
 /**
- * @brief ÎŞÖĞ¶ÏÀàĞÍ¸ßCPUÕ¼ÓÃ¸ß¾«¶È10us¼ÆÊ±Æ÷
- * @param ´«ÈëÒªÑÓÊ±µÄ10us
- * @retval ÎŞ
+ * @brief æ— ä¸­æ–­ç±»å‹é«˜CPUå ç”¨é«˜ç²¾åº¦10usè®¡æ—¶å™¨(å†…éƒ¨å·²ç»åˆå§‹åŒ–)
+ * @param ä¼ å…¥è¦å»¶æ—¶çš„10us
+ * @retval æ— 
  */
 void SysTick_NO_EXTI_Delay_10us(__IO uint32_t us)
 {
 	uint32_t i;
-	//ÅäÖÃ¼ÆÊ±Æ÷
+	//é…ç½®è®¡æ—¶å™¨
 	SysTick_Config(SystemCoreClock / 100000);
 	for(i=0;i<us;i++)
 	{
-		// µ±¼ÆÊıÆ÷µÄÖµ¼õĞ¡µ½0µÄÊ±ºò£¬CRTL¼Ä´æÆ÷µÄÎ»16»áÖÃ1	
+		// å½“è®¡æ•°å™¨çš„å€¼å‡å°åˆ°0çš„æ—¶å€™ï¼ŒCRTLå¯„å­˜å™¨çš„ä½16ä¼šç½®1	
 		while( !((SysTick->CTRL)&(1<<16)) );
 	}
-	// ¹Ø±ÕSysTick¶¨Ê±Æ÷
+	// å…³é—­SysTickå®šæ—¶å™¨
 	SysTick->CTRL &=~SysTick_CTRL_ENABLE_Msk;
 }
 /**
- * @brief ÎŞÖĞ¶ÏÀàĞÍ¸ßCPUÕ¼ÓÃ¸ß¾«¶È1ms¼ÆÊ±Æ÷
- * @param ´«ÈëÒªÑÓÊ±µÄ10us
- * @retval ÎŞ
+ * @brief æ— ä¸­æ–­ç±»å‹é«˜CPUå ç”¨é«˜ç²¾åº¦1msè®¡æ—¶å™¨(å†…éƒ¨å·²ç»åˆå§‹åŒ–)
+ * @param ä¼ å…¥è¦å»¶æ—¶çš„10us
+ * @retval æ— 
  */
 void SysTick_NO_EXTI_Delay_1ms(__IO uint32_t ms)
 {
 	uint32_t i;
-	//ÅäÖÃ¼ÆÊ±Æ÷
+	//é…ç½®è®¡æ—¶å™¨
 	SysTick_Config(SystemCoreClock /1000);
 	for(i=0;i<ms;i++)
 	{
-		// µ±¼ÆÊıÆ÷µÄÖµ¼õĞ¡µ½0µÄÊ±ºò£¬CRTL¼Ä´æÆ÷µÄÎ»16»áÖÃ1	
+		// å½“è®¡æ•°å™¨çš„å€¼å‡å°åˆ°0çš„æ—¶å€™ï¼ŒCRTLå¯„å­˜å™¨çš„ä½16ä¼šç½®1	
 		while( !((SysTick->CTRL)&(1<<16)) );
 	}
-	// ¹Ø±ÕSysTick¶¨Ê±Æ÷
+	// å…³é—­SysTickå®šæ—¶å™¨
 	SysTick->CTRL &=~SysTick_CTRL_ENABLE_Msk;
 }
