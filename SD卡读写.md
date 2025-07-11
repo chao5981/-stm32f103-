@@ -89,7 +89,15 @@ SD_LowLevel_DMA_TxConfig 函数用于配置 DMA 的 SDIO 发送请求参数，�
 
 在这里我把函数名改了一下而已，其实没啥区别，不改还好一点，一旦改了下面的调用了这个函数的函数名都得换。
 
-6.配置中断，写等待SD_WaitReadOperation()和读等待SD_WaitWriteOperation()函数依赖中断标志位，所有需要加上。代码如下：
+6.写DMA结束传输标志函数，这里直接附上代码
+
+    uint32_t SD_DMAEndOfTransferStatus(void)
+    {
+      return (uint32_t)DMA_GetFlagStatus(DMA2_FLAG_TC4);   //Channel4 transfer complete flag. 
+    
+    }
+    
+7.配置中断，写等待SD_WaitReadOperation()和读等待SD_WaitWriteOperation()函数依赖中断标志位，所有需要加上。代码如下：
 
     void SDIO_IRQHandler(void) 
     {
@@ -98,4 +106,65 @@ SD_LowLevel_DMA_TxConfig 函数用于配置 DMA 的 SDIO 发送请求参数，�
     }
 
 
-完成以上步骤，则SDIO文件移植完成，可以正常使用了。下面讲解读写过程中需要注意的点。
+完成以上步骤，则SDIO文件移植完成，可以正常使用了。下面先介绍其中的函数：
+
+1.初始化与反初始化函数
+
+    1.void SD_DeInit(void);  功能：将 SD 卡接口相关的硬件和软件配置恢复到初始状态，释放资源，通常用于系统关闭或重新配置  常用于底层
+    2.SD_Error SD_Init(void);  功能：初始化 SD 卡接口，包括配置 SDIO 外设、时钟、引脚等，使 SD 卡能够正常通信。
+
+2.状态获取函数
+
+    1.SDTransferState SD_GetStatus(void); 功能：获取 SD 卡当前的数据传输状态，如传输正常、传输繁忙或传输错误。用于DMA数据传输检测
+    2.SDCardState SD_GetState(void); 功能：获取 SD 卡当前的工作状态，如就绪、识别、待机、传输等。 用于忙状态检测，但是写忙和读忙都有自己的函数，一般这样用于等待擦除忙完成
+    3.uint8_t SD_Detect(void);  功能：检测 SD 卡是否插入卡槽。  常用于底层
+
+3.电源管理函数
+
+    1.SD_Error SD_PowerON(void);  功能：为 SD 卡供电，使 SD 卡进入可操作状态。
+    2.SD_Error SD_PowerOFF(void);  功能：关闭 SD 卡的电源，通常在系统低功耗模式或不需要使用 SD 卡时调用。
+
+4.卡片初始化与信息获取函数
+
+    1.SD_Error SD_InitializeCards(void);  功能：对插入的 SD 卡进行初始化操作，使其能够正常通信和读写。
+    2.SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo);  功能：获取 SD 卡的详细信息，如容量、块大小、CID、CSD 等，并存储在 SD_CardInfo 结构体中。
+    3.SD_Error SD_GetCardStatus(SD_CardStatus *cardstatus);  功能：获取 SD 卡的状态信息，如数据总线宽度、安全模式等，并存储在 SD_CardStatus 结构体中。
+
+5.总线操作与卡片选择函数
+
+    1.SD_Error SD_EnableWideBusOperation(uint32_t WideMode);  功能：启用 SD 卡的宽总线操作模式，如 4 位或 8 位总线。这个常用于底层配置，一般我们用不到
+    2.SD_Error SD_SelectDeselect(uint32_t addr);  功能：选择或取消选择指定地址的 SD 卡，用于多卡系统或需要切换操作的卡片。
+
+6.读写操作函数
+
+    1.SD_Error SD_ReadBlock(uint8_t *readbuff, uint64_t ReadAddr, uint16_t BlockSize);  功能：从 SD 卡的指定地址读取一个数据块到指定的缓冲区。
+    2.SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint64_t ReadAddr, uint16_t BlockSize, uint32_t NumberOfBlocks);  功能：从 SD 卡的指定地址连续读取多个数据块到指定的缓冲区。
+    3.SD_Error SD_WriteBlock(uint8_t *writebuff, uint64_t WriteAddr, uint16_t BlockSize);  功能：将指定缓冲区中的一个数据块写入 SD 卡的指定地址。
+    4.SD_Error SD_WriteMultiBlocks(uint8_t *writebuff, uint64_t WriteAddr, uint16_t BlockSize, uint32_t NumberOfBlocks);  功能：将指定缓冲区中的多个数据块连续写入 SD 卡的指定地址。
+
+7.传输状态与控制函数
+
+    1.SDTransferState SD_GetTransferState(void);  功能：获取 SD 卡当前的数据传输状态，用于底层
+    2.SD_Error SD_StopTransfer(void);  功能：停止当前正在进行的 SD 卡数据传输操作。
+
+8.擦除与状态发送函数
+
+    1.SD_Error SD_Erase(uint32_t startaddr, uint32_t endaddr);  功能：擦除 SD 卡指定地址范围内的数据块。
+    2.SD_Error SD_SendStatus(uint32_t *pcardstatus);  功能：向 SD 卡发送请求，获取 SD 卡的状态信息，并存储在 pcardstatus 指向的变量中。  用于底层
+    3.SD_Error SD_SendSDStatus(uint32_t *psdstatus);  功能：向 SD 卡发送请求，获取 SD 卡的特定状态信息，并存储在 psdstatus 指向的变量中。  用于底层
+
+9.中断处理与等待函数
+
+    1.SD_Error SD_ProcessIRQSrc(void);  功能：处理 SD 卡接口的中断源，根据中断类型执行相应的操作。
+    2.SD_Error SD_WaitReadOperation(void);  功能：等待 SD 卡的读取操作完成。  
+    3.SD_Error SD_WaitWriteOperation(void);  功能：等待 SD 卡的写入操作完成。
+
+
+接下来介绍其定义的返回值类型
+
+上面的函数涉及到的返回类型就是SD_Error和SDTransferState，一般检测就用if语句判断是否OK，其他暂时用不上。
+
+
+接下来讲解调用是的注意事项：
+
+这个SD读写和Flash的读写有几分相似，就是不要忘记在读，写，擦除等操作后进行等待即可。
