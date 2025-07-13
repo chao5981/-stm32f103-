@@ -105,6 +105,407 @@ SD_LowLevel_DMA_TxConfig 函数用于配置 DMA 的 SDIO 发送请求参数，�
       SD_ProcessIRQSrc();
     }
 
+8.在读，写函数中有部分要进行修改，直接移植即可，这里直接附上源码
+
+      SD_Error SD_ReadBlock(uint8_t *readbuff, uint64_t ReadAddr, uint16_t BlockSize)
+    {
+      SD_Error errorstatus = SD_OK;
+    #if defined (SD_POLLING_MODE) 
+      uint32_t count = 0, *tempbuff = (uint32_t *)readbuff;
+    #endif
+    
+      TransferError = SD_OK;
+      TransferEnd = 0;	 //传输结束标置位，在中断服务置1
+      StopCondition = 0;  //怎么用的？
+      
+      SDIO->DCTRL = 0x0;
+    
+      
+      if (CardType == SDIO_HIGH_CAPACITY_SD_CARD)
+      {
+        BlockSize = 512;
+        ReadAddr /= 512;
+      }
+      /*******************add，没有这一段容易卡死在DMA检测中*************************************/
+      /* Set Block Size for Card，cmd16,
+    	 * 若是sdsc卡，可以用来设置块大小，
+    	 * 若是sdhc卡，块大小为512字节，不受cmd16影响 
+    	 */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t) BlockSize;
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_SET_BLOCKLEN;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;   //r1
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_SET_BLOCKLEN);
+    
+      if (SD_OK != errorstatus)
+      {
+        return(errorstatus);
+      }
+     /*********************************************************************************/
+      SDIO_DataInitStructure.SDIO_DataTimeOut = SD_DATATIMEOUT;
+      SDIO_DataInitStructure.SDIO_DataLength = BlockSize;
+      SDIO_DataInitStructure.SDIO_DataBlockSize = (uint32_t) 9 << 4;
+      SDIO_DataInitStructure.SDIO_TransferDir = SDIO_TransferDir_ToSDIO;
+      SDIO_DataInitStructure.SDIO_TransferMode = SDIO_TransferMode_Block;
+      SDIO_DataInitStructure.SDIO_DPSM = SDIO_DPSM_Enable;
+      SDIO_DataConfig(&SDIO_DataInitStructure);
+    
+      /*!< Send CMD17 READ_SINGLE_BLOCK */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t)ReadAddr;
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_READ_SINGLE_BLOCK;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_READ_SINGLE_BLOCK);
+    
+      if (errorstatus != SD_OK)
+      {
+        return(errorstatus);
+      }
+    
+    #if defined (SD_POLLING_MODE)  
+      /*!< In case of single block transfer, no need of stop transfer at all.*/
+      /*!< Polling mode */
+      while (!(SDIO->STA &(SDIO_FLAG_RXOVERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DBCKEND | SDIO_FLAG_STBITERR)))
+      {
+        if (SDIO_GetFlagStatus(SDIO_FLAG_RXFIFOHF) != RESET)
+        {
+          for (count = 0; count < 8; count++)
+          {
+            *(tempbuff + count) = SDIO_ReadData();
+          }
+          tempbuff += 8;
+        }
+      }
+    
+      if (SDIO_GetFlagStatus(SDIO_FLAG_DTIMEOUT) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_DTIMEOUT);
+        errorstatus = SD_DATA_TIMEOUT;
+        return(errorstatus);
+      }
+      else if (SDIO_GetFlagStatus(SDIO_FLAG_DCRCFAIL) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_DCRCFAIL);
+        errorstatus = SD_DATA_CRC_FAIL;
+        return(errorstatus);
+      }
+      else if (SDIO_GetFlagStatus(SDIO_FLAG_RXOVERR) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_RXOVERR);
+        errorstatus = SD_RX_OVERRUN;
+        return(errorstatus);
+      }
+      else if (SDIO_GetFlagStatus(SDIO_FLAG_STBITERR) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_STBITERR);
+        errorstatus = SD_START_BIT_ERR;
+        return(errorstatus);
+      }
+      while (SDIO_GetFlagStatus(SDIO_FLAG_RXDAVL) != RESET)
+      {
+        *tempbuff = SDIO_ReadData();
+        tempbuff++;
+      }
+      
+      /*!< Clear all the static flags */
+      SDIO_ClearFlag(SDIO_STATIC_FLAGS);
+    
+    #elif defined (SD_DMA_MODE)
+        SDIO_ITConfig(SDIO_IT_DATAEND, ENABLE);
+        SDIO_DMACmd(ENABLE);
+        SD_DMA_RxConfig((uint32_t *)readbuff, BlockSize);
+    #endif
+    
+      return(errorstatus);
+    }
+
+
+    SD_Error SD_ReadMultiBlocks(uint8_t *readbuff, uint64_t ReadAddr, uint16_t BlockSize, uint32_t NumberOfBlocks)
+    {
+      SD_Error errorstatus = SD_OK;
+      TransferError = SD_OK;
+      TransferEnd = 0;
+      StopCondition = 1;
+    	
+      SDIO->DCTRL = 0x0;	 //复位数据控制寄存器
+    
+      if (CardType == SDIO_HIGH_CAPACITY_SD_CARD)//sdhc卡的地址以块为单位，每块512字节
+      {
+        BlockSize = 512;
+        ReadAddr /= 512;
+      }
+    
+      /*!< Set Block Size for Card，cmd16,若是sdsc卡，可以用来设置块大小，若是sdhc卡，块大小为512字节，不受cmd16影响 */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t) BlockSize;
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_SET_BLOCKLEN;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;   //r1
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_SET_BLOCKLEN);
+    
+      if (SD_OK != errorstatus)
+      {
+        return(errorstatus);
+      }
+        
+      SDIO_DataInitStructure.SDIO_DataTimeOut = SD_DATATIMEOUT;	 //等待超时限制
+      SDIO_DataInitStructure.SDIO_DataLength = NumberOfBlocks * BlockSize;	 //对于块数据传输，数据长度寄存器中的数值必须是数据块长度(见SDIO_DCTRL)的倍数
+      SDIO_DataInitStructure.SDIO_DataBlockSize = (uint32_t) 9 << 4; //直接用参数多好。。。SDIO_DataBlockSize_512b
+      SDIO_DataInitStructure.SDIO_TransferDir = SDIO_TransferDir_ToSDIO;//传输方向
+      SDIO_DataInitStructure.SDIO_TransferMode = SDIO_TransferMode_Block; //传输模式
+      SDIO_DataInitStructure.SDIO_DPSM = SDIO_DPSM_Enable;	//开启数据状态机
+      SDIO_DataConfig(&SDIO_DataInitStructure);
+    
+      /*!< Send CMD18 READ_MULT_BLOCK with argument data address */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t)ReadAddr;	//起始地址
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_READ_MULT_BLOCK;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short; //r1
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_READ_MULT_BLOCK);
+    
+      if (errorstatus != SD_OK)
+      {
+        return(errorstatus);
+      }
+    
+      SDIO_ITConfig(SDIO_IT_DATAEND, ENABLE);  //开启数据传输结束中断 ，Data end (data counter, SDIDCOUNT, is zero) interrupt 
+      SDIO_DMACmd(ENABLE); //使能dma方式
+      SD_DMA_RxConfig((uint32_t *)readbuff, (NumberOfBlocks * BlockSize));//配置DMA接收
+    
+      return(errorstatus);
+    }
+
+    
+    SD_Error SD_WriteBlock(uint8_t *writebuff, uint64_t WriteAddr, uint16_t BlockSize)
+    {
+      SD_Error errorstatus = SD_OK;
+    
+    #if defined (SD_POLLING_MODE)
+      uint32_t bytestransferred = 0, count = 0, restwords = 0;
+      uint32_t *tempbuff = (uint32_t *)writebuff;
+    #endif
+    
+      TransferError = SD_OK;
+      TransferEnd = 0;
+      StopCondition = 0;
+      
+      SDIO->DCTRL = 0x0;
+    
+    
+      if (CardType == SDIO_HIGH_CAPACITY_SD_CARD)
+      {
+        BlockSize = 512;
+        WriteAddr /= 512;
+      }
+    
+    	/*-------------- add , 没有这一段容易卡死在DMA检测中 -------------------*/
+    	/* Set Block Size for Card，cmd16,
+    	 * 若是sdsc卡，可以用来设置块大小，
+    	 * 若是sdhc卡，块大小为512字节，不受cmd16影响 
+    	 */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t) BlockSize;
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_SET_BLOCKLEN;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;   
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_SET_BLOCKLEN);
+    
+      if (SD_OK != errorstatus)
+      {
+        return(errorstatus);
+      }
+     /*********************************************************************************/
+      
+      /*!< Send CMD24 WRITE_SINGLE_BLOCK */
+      SDIO_CmdInitStructure.SDIO_Argument = WriteAddr;	  //写入地址
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_WRITE_SINGLE_BLOCK;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;	 //r1
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_WRITE_SINGLE_BLOCK);
+    
+      if (errorstatus != SD_OK)
+      {
+        return(errorstatus);
+      }
+    	
+    	//配置sdio的写数据寄存器
+      SDIO_DataInitStructure.SDIO_DataTimeOut = SD_DATATIMEOUT;
+      SDIO_DataInitStructure.SDIO_DataLength = BlockSize;
+      SDIO_DataInitStructure.SDIO_DataBlockSize = (uint32_t) 9 << 4;  //可用此参数代替SDIO_DataBlockSize_512b
+      SDIO_DataInitStructure.SDIO_TransferDir = SDIO_TransferDir_ToCard;//写数据，
+      SDIO_DataInitStructure.SDIO_TransferMode = SDIO_TransferMode_Block;
+      SDIO_DataInitStructure.SDIO_DPSM = SDIO_DPSM_Enable;	 //开启数据通道状态机
+      SDIO_DataConfig(&SDIO_DataInitStructure);
+    
+      /*!< In case of single data block transfer no need of stop command at all */
+    #if defined (SD_POLLING_MODE) //普通模式
+      while (!(SDIO->STA & (SDIO_FLAG_DBCKEND | SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_STBITERR)))
+      {
+        if (SDIO_GetFlagStatus(SDIO_FLAG_TXFIFOHE) != RESET)
+        {
+          if ((512 - bytestransferred) < 32)
+          {
+            restwords = ((512 - bytestransferred) % 4 == 0) ? ((512 - bytestransferred) / 4) : (( 512 -  bytestransferred) / 4 + 1);
+            for (count = 0; count < restwords; count++, tempbuff++, bytestransferred += 4)
+            {
+              SDIO_WriteData(*tempbuff);
+            }
+          }
+          else
+          {
+            for (count = 0; count < 8; count++)
+            {
+              SDIO_WriteData(*(tempbuff + count));
+            }
+            tempbuff += 8;
+            bytestransferred += 32;
+          }
+        }
+      }
+      if (SDIO_GetFlagStatus(SDIO_FLAG_DTIMEOUT) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_DTIMEOUT);
+        errorstatus = SD_DATA_TIMEOUT;
+        return(errorstatus);
+      }
+      else if (SDIO_GetFlagStatus(SDIO_FLAG_DCRCFAIL) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_DCRCFAIL);
+        errorstatus = SD_DATA_CRC_FAIL;
+        return(errorstatus);
+      }
+      else if (SDIO_GetFlagStatus(SDIO_FLAG_TXUNDERR) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_TXUNDERR);
+        errorstatus = SD_TX_UNDERRUN;
+        return(errorstatus);
+      }
+      else if (SDIO_GetFlagStatus(SDIO_FLAG_STBITERR) != RESET)
+      {
+        SDIO_ClearFlag(SDIO_FLAG_STBITERR);
+        errorstatus = SD_START_BIT_ERR;
+        return(errorstatus);
+      }
+    #elif defined (SD_DMA_MODE)	//dma模式
+      SDIO_ITConfig(SDIO_IT_DATAEND, ENABLE);  //数据传输结束中断
+      SD_DMA_TxConfig((uint32_t *)writebuff, BlockSize); //配置dma，跟rx类似
+      SDIO_DMACmd(ENABLE);	 //	使能sdio的dma请求
+    #endif
+    
+      return(errorstatus);
+    }
+
+    SD_Error SD_WriteMultiBlocks(uint8_t *writebuff, uint64_t WriteAddr, uint16_t BlockSize, uint32_t NumberOfBlocks)
+    {
+      SD_Error errorstatus = SD_OK;
+      __IO uint32_t count = 0;
+    
+      TransferError = SD_OK;
+      TransferEnd = 0;
+      StopCondition = 1;
+      
+      SDIO->DCTRL = 0x0;
+    
+      if (CardType == SDIO_HIGH_CAPACITY_SD_CARD)
+      {
+        BlockSize = 512;
+        WriteAddr /= 512;
+      }
+    
+        /*******************add，没有这一段容易卡死在DMA检测中*************************************/
+        /*!< Set Block Size for Card，cmd16,若是sdsc卡，可以用来设置块大小，若是sdhc卡，块大小为512字节，不受cmd16影响 */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t) BlockSize;
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_SET_BLOCKLEN;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;   //r1
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_SET_BLOCKLEN);
+    
+      if (SD_OK != errorstatus)
+      {
+        return(errorstatus);
+      }
+     /*********************************************************************************/
+    
+      /*!< To improve performance  */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t) (RCA << 16);
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_APP_CMD;	// cmd55
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+    
+      errorstatus = CmdResp1Error(SD_CMD_APP_CMD);
+    
+      if (errorstatus != SD_OK)
+      {
+        return(errorstatus);
+      }
+      /*!< To improve performance *///  pre-erased，在多块写入时可发送此命令进行预擦除
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t)NumberOfBlocks;  //参数为将要写入的块数目
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_SET_BLOCK_COUNT;	 //cmd23
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_SET_BLOCK_COUNT);
+    
+      if (errorstatus != SD_OK)
+      {
+        return(errorstatus);
+      }
+    
+    
+      /*!< Send CMD25 WRITE_MULT_BLOCK with argument data address */
+      SDIO_CmdInitStructure.SDIO_Argument = (uint32_t)WriteAddr;
+      SDIO_CmdInitStructure.SDIO_CmdIndex = SD_CMD_WRITE_MULT_BLOCK;
+      SDIO_CmdInitStructure.SDIO_Response = SDIO_Response_Short;
+      SDIO_CmdInitStructure.SDIO_Wait = SDIO_Wait_No;
+      SDIO_CmdInitStructure.SDIO_CPSM = SDIO_CPSM_Enable;
+      SDIO_SendCommand(&SDIO_CmdInitStructure);
+    
+      errorstatus = CmdResp1Error(SD_CMD_WRITE_MULT_BLOCK);
+    
+      if (SD_OK != errorstatus)
+      {
+        return(errorstatus);
+      }
+    
+      SDIO_DataInitStructure.SDIO_DataTimeOut = SD_DATATIMEOUT;
+      SDIO_DataInitStructure.SDIO_DataLength = NumberOfBlocks * BlockSize;
+      SDIO_DataInitStructure.SDIO_DataBlockSize = (uint32_t) 9 << 4;
+      SDIO_DataInitStructure.SDIO_TransferDir = SDIO_TransferDir_ToCard;
+      SDIO_DataInitStructure.SDIO_TransferMode = SDIO_TransferMode_Block;
+      SDIO_DataInitStructure.SDIO_DPSM = SDIO_DPSM_Enable;
+      SDIO_DataConfig(&SDIO_DataInitStructure);
+    
+      SDIO_ITConfig(SDIO_IT_DATAEND, ENABLE);
+      SDIO_DMACmd(ENABLE);    
+      SD_DMA_TxConfig((uint32_t *)writebuff, (NumberOfBlocks * BlockSize));
+    
+      return(errorstatus);
+    }
+        
 
 完成以上步骤，则SDIO文件移植完成，可以正常使用了。下面先介绍其中的函数：
 
