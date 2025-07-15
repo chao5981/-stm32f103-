@@ -4,10 +4,10 @@ void General_TIM_GPIO_Config(void)
 {
 	GPIO_InitTypeDef General_TIM_GPIO_Structure;
 	
-	//¿ªÊ±ÖÓ
+	//å¼€æ—¶é’Ÿ
 	GENERAL_TIM_CH1_GPIO_CLK_FUN(GENERAL_TIM_CH1_GPIO_CLK,ENABLE);
 	
-	//ÅäÖÃGPIO½á¹¹Ìå
+	//é…ç½®GPIOç»“æ„ä½“
 	General_TIM_GPIO_Structure.GPIO_Mode=GPIO_Mode_AF_PP;
 	General_TIM_GPIO_Structure.GPIO_Pin=GENERAL_TIM_CH1_PIN;
 	General_TIM_GPIO_Structure.GPIO_Speed=GPIO_Speed_50MHz;
@@ -22,10 +22,10 @@ void General_TIM_Config(void)
 	TIM_TimeBaseInitTypeDef General_TIM_BASE_Structure;
 	TIM_OCInitTypeDef General_TIM_OC_Structure;
 	
-	//¿ªÊ±ÖÓ
+	//å¼€æ—¶é’Ÿ
 	GENERAL_TIM_APBxClock_FUN(GENERAL_TIM_CLK,ENABLE);
 	
-	//ÅäÖÃÊ±»ù½á¹¹Ìå
+	//é…ç½®æ—¶åŸºç»“æ„ä½“
 	
 	General_TIM_BASE_Structure.TIM_ClockDivision=TIM_CKD_DIV1;
 	
@@ -39,7 +39,7 @@ void General_TIM_Config(void)
 	
 	TIM_TimeBaseInit(GENERAL_TIM,&General_TIM_BASE_Structure);
 	
-	//ÅäÖÃÊä³ö½á¹¹Ìå
+	//é…ç½®è¾“å‡ºç»“æ„ä½“
 	
 	General_TIM_OC_Structure.TIM_OCMode=TIM_OCMode_PWM1;
 	
@@ -50,11 +50,11 @@ void General_TIM_Config(void)
 	General_TIM_OC_Structure.TIM_OutputState=TIM_OutputState_Enable;
 	
 	General_TIM_OC_Structure.TIM_Pulse=GENERAL_TIM_CCR1;
-	//³õÊ¼»¯½á¹¹Ìå
+	//åˆå§‹åŒ–ç»“æ„ä½“
 	TIM_OC1Init(GENERAL_TIM,&General_TIM_OC_Structure);
-	//Æô¶¯±È½Ï¼Ä´æÆ÷
+	//ä½¿èƒ½å½±å­å¯„å­˜å™¨(åé¢ä¼šè®²è§£)
 	TIM_OC1PreloadConfig(GENERAL_TIM,TIM_OCPreload_Enable);
-	//Ê¹ÄÜTIM
+	//ä½¿èƒ½TIM
 	TIM_Cmd(GENERAL_TIM,ENABLE);
 	
 }
