@@ -4,30 +4,30 @@ void Color_LED_GPIO_Config(void)
 {
 	GPIO_InitTypeDef Color_LED_GPIO_Structure;
 	
-	//¿ªÆôÊ±ÖÓ²¢ÇÒ¿ªÆôÖØÓ³ÉäÊ±ÖÓ
+	//å¼€å¯æ—¶é’Ÿå¹¶ä¸”å¼€å¯é‡æ˜ å°„æ—¶é’Ÿ
 	COLOR_GPIO_CLK_FUN(COLOR_TIM_GPIO_CLK,ENABLE);
 	
 	COLOR_GPIO_CLK_FUN(RCC_APB2Periph_AFIO,ENABLE);
 	
 	
-	//ÖØÓ³ÉäIO¿ÚÉèÖÃ
+	//é‡æ˜ å°„IOå£è®¾ç½®
 	COLOR_GPIO_REMAP_FUN();
 	
-	//ÅäÖÃGPIO½á¹¹Ìå
+	//é…ç½®GPIOç»“æž„ä½“
 	
-	//ºìµÆ
+	//çº¢ç¯
 	Color_LED_GPIO_Structure.GPIO_Mode=GPIO_Mode_AF_PP;
 	Color_LED_GPIO_Structure.GPIO_Pin=COLOR_RED_TIM_LED_PIN;
 	Color_LED_GPIO_Structure.GPIO_Speed=GPIO_Speed_50MHz;
 	
 	GPIO_Init(COLOR_RED_TIM_LED_PORT,&Color_LED_GPIO_Structure);
 	
-	//ÂÌµÆ
+	//ç»¿ç¯
 	Color_LED_GPIO_Structure.GPIO_Pin=COLOR_GREEN_TIM_LED_PIN;
 	
 	GPIO_Init(COLOR_GREEN_TIM_LED_PORT,&Color_LED_GPIO_Structure);
 
-	//À¶µÆ
+	//è“ç¯
 	Color_LED_GPIO_Structure.GPIO_Pin=COLOR_BLUE_TIM_LED_PIN;
 	
 	GPIO_Init(COLOR_BLUE_TIM_LED_PORT,&Color_LED_GPIO_Structure);
@@ -41,41 +41,40 @@ void Color_LED_TIMx_Config(void)
 	TIM_TimeBaseInitTypeDef  Color_LED_TIMx_Base_Structure;
 	TIM_OCInitTypeDef  Color_LED_TIMx_OC_Structure;
 
-	//¿ªÆôÊ±ÖÓ
+	//å¼€å¯æ—¶é’Ÿ
 	COLOR_TIM_APBxClock_FUN(COLOR_TIM_CLK,ENABLE);
 	
-	//ÅäÖÃÊ±»ù½á¹¹Ìå
+	//é…ç½®æ—¶åŸºç»“æž„ä½“
 	Color_LED_TIMx_Base_Structure.TIM_ClockDivision= TIM_CKD_DIV1;
 	Color_LED_TIMx_Base_Structure.TIM_CounterMode=TIM_CounterMode_Up;
 	Color_LED_TIMx_Base_Structure.TIM_Period=COLOR_TIM_PERIOD;
 	Color_LED_TIMx_Base_Structure.TIM_Prescaler=COLOR_TIM_PSC;
 	Color_LED_TIMx_Base_Structure.TIM_RepetitionCounter=0;
 	
+	//ä½¿èƒ½æ—¶åŸºå’Œå½±å­å¯„å­˜å™¨
 	TIM_TimeBaseInit(COLOR_TIMx,&Color_LED_TIMx_Base_Structure);
+	TIM_ARRPreloadConfig(COLOR_TIMx, ENABLE);	
 	
-	
-	//ÅäÖÃÊä³ö½á¹¹Ìå
+	//é…ç½®è¾“å‡ºç»“æž„ä½“
 	Color_LED_TIMx_OC_Structure.TIM_OCMode=TIM_OCMode_PWM1;
 	Color_LED_TIMx_OC_Structure.TIM_OCPolarity=TIM_OCPolarity_Low;
 	Color_LED_TIMx_OC_Structure.TIM_OutputState=TIM_OutputState_Enable;
 	Color_LED_TIMx_OC_Structure.TIM_Pulse=0;
 	
-		//Ê¹ÄÜÍ¨µÀºÍÔ¤×°ÔØ
+		//ä½¿èƒ½é€šé“å’Œå½±å­å¯„å­˜å™¨
   COLOR_RED_TIM_OCxInit(COLOR_TIMx, &Color_LED_TIMx_OC_Structure);	 							
   COLOR_RED_TIM_OCxPreloadConfig(COLOR_TIMx, TIM_OCPreload_Enable);						
   
-	//Ê¹ÄÜÍ¨µÀºÍÔ¤×°ÔØ
+		//ä½¿èƒ½é€šé“å’Œå½±å­å¯„å­˜å™¨
   COLOR_GREEN_TIM_OCxInit(COLOR_TIMx, &Color_LED_TIMx_OC_Structure);	 									
   COLOR_GREEN_TIM_OCxPreloadConfig(COLOR_TIMx, TIM_OCPreload_Enable);						
   
-	//Ê¹ÄÜÍ¨µÀºÍÔ¤×°ÔØ
+		//ä½¿èƒ½é€šé“å’Œå½±å­å¯„å­˜å™¨
   COLOR_BLUE_TIM_OCxInit(COLOR_TIMx, &Color_LED_TIMx_OC_Structure);	 									
   COLOR_BLUE_TIM_OCxPreloadConfig(COLOR_TIMx, TIM_OCPreload_Enable);
 	
-	//Ê¹ÄÜARRÔ¤×°ÔØ¼Ä´æÆ÷
-	TIM_ARRPreloadConfig(COLOR_TIMx, ENABLE);	
 	
-	//Ê¹ÄÜ¶¨Ê±Æ÷
+	//ä½¿èƒ½å®šæ—¶å™¨
 	TIM_Cmd(COLOR_TIMx, ENABLE);
 }
 
@@ -90,10 +89,10 @@ void COLOR_TIMx_LED_Init(void)
 void COLOR_TIMx_LED_Close(void)
 {
 	SetColorValue(0,0,0);
-	TIM_Cmd(COLOR_TIMx, DISABLE);                   							//Ê§ÄÜ¶¨Ê±Æ÷						
-	COLOR_TIM_APBxClock_FUN(COLOR_TIM_CLK, DISABLE); 	//Ê§ÄÜ¶¨Ê±Æ÷Ê±ÖÓ
+	TIM_Cmd(COLOR_TIMx, DISABLE);                   							//å¤±èƒ½å®šæ—¶å™¨						
+	COLOR_TIM_APBxClock_FUN(COLOR_TIM_CLK, DISABLE); 	//å¤±èƒ½å®šæ—¶å™¨æ—¶é’Ÿ
 	
-	//¹Ø±ÕLEDµÆ
+	//å…³é—­LEDç¯
 	GPIO_SetBits(COLOR_RED_TIM_LED_PORT,COLOR_RED_TIM_LED_PIN);
 	GPIO_SetBits(COLOR_GREEN_TIM_LED_PORT,COLOR_GREEN_TIM_LED_PIN);
 	GPIO_SetBits(COLOR_BLUE_TIM_LED_PORT,COLOR_BLUE_TIM_LED_PIN);
@@ -101,13 +100,13 @@ void COLOR_TIMx_LED_Close(void)
 
 
 /**
-  * @brief  ÉèÖÃRGB LEDµÄÑÕÉ«
-	* @param  rgb:ÒªÉèÖÃLEDÏÔÊ¾µÄÑÕÉ«Öµ¸ñÊ½RGB888
-  * @retval ÎÞ
+  * @brief  è®¾ç½®RGB LEDçš„é¢œè‰²
+	* @param  rgb:è¦è®¾ç½®LEDæ˜¾ç¤ºçš„é¢œè‰²å€¼æ ¼å¼RGB888
+  * @retval æ— 
   */
 void SetRGBColor(uint32_t rgb)
 {
-	//¸ù¾ÝÑÕÉ«ÖµÐÞ¸Ä¶¨Ê±Æ÷µÄ±È½Ï¼Ä´æÆ÷Öµ
+	//æ ¹æ®é¢œè‰²å€¼ä¿®æ”¹å®šæ—¶å™¨çš„æ¯”è¾ƒå¯„å­˜å™¨å€¼
 	COLOR_TIMx->COLOR_RED_CCRx = (uint8_t)(rgb>>16);			//R
 	COLOR_TIMx->COLOR_GREEN_CCRx = (uint8_t)(rgb>>8);	  //G     
 	COLOR_TIMx->COLOR_BLUE_CCRx = (uint8_t)rgb;						//B
@@ -115,13 +114,13 @@ void SetRGBColor(uint32_t rgb)
 
 
  /**
-  * @brief  ÉèÖÃRGB LEDµÄÑÕÉ«
-	* @param  r\g\b:ÒªÉèÖÃLEDÏÔÊ¾µÄÑÕÉ«Öµ
-  * @retval ÎÞ
+  * @brief  è®¾ç½®RGB LEDçš„é¢œè‰²
+	* @param  r\g\b:è¦è®¾ç½®LEDæ˜¾ç¤ºçš„é¢œè‰²å€¼
+  * @retval æ— 
   */
 void SetColorValue(uint8_t r,uint8_t g,uint8_t b)
 {
-	//¸ù¾ÝÑÕÉ«ÖµÐÞ¸Ä¶¨Ê±Æ÷µÄ±È½Ï¼Ä´æÆ÷Öµ
+	//æ ¹æ®é¢œè‰²å€¼ä¿®æ”¹å®šæ—¶å™¨çš„æ¯”è¾ƒå¯„å­˜å™¨å€¼
 	COLOR_TIMx->COLOR_RED_CCRx = r;	
 	COLOR_TIMx->COLOR_GREEN_CCRx = g;	        
 	COLOR_TIMx->COLOR_BLUE_CCRx = b;	
