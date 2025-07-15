@@ -4,7 +4,7 @@ void GPIO_Advance_TIM_Config(void)
 {
 	GPIO_InitTypeDef GPIO_Advance_TIM_Structure;
 	
-	//*********��ʼ���Ƚ�ͨ��*********//
+	//*********初始化比较通道*********//
 	ADVANCE_TIM_CH1_GPIO_CLK_FUN(ADVANCE_TIM_CH1_GPIO_CLK,ENABLE);
 	GPIO_Advance_TIM_Structure.GPIO_Pin=ADVANCE_TIM_CH1_PIN;
 	GPIO_Advance_TIM_Structure.GPIO_Mode=GPIO_Mode_AF_PP;
@@ -12,45 +12,45 @@ void GPIO_Advance_TIM_Config(void)
 	GPIO_Init(ADVANCE_TIM_CH1_PORT,&GPIO_Advance_TIM_Structure);
 	
 	
-	//*********��ʼ���������ͨ��***********//
+	//*********初始化互补输出通道***********//
 	ADVANCE_TIM_CH1N_GPIO_CLK_FUN(ADVANCE_TIM_CH1N_GPIO_CLK,ENABLE);
 	GPIO_Advance_TIM_Structure.GPIO_Pin=ADVANCE_TIM_CH1N_PIN;
 	GPIO_Advance_TIM_Structure.GPIO_Mode=GPIO_Mode_AF_PP;
 	GPIO_Advance_TIM_Structure.GPIO_Speed=GPIO_Speed_50MHz;
 	GPIO_Init(ADVANCE_TIM_CH1N_PORT,&GPIO_Advance_TIM_Structure);
 	
-	//*********��ʼ��ɲ��ͨ��*************//
+	//*********初始化刹车通道*************//
 	ADVANCE_TIM_BKIN_GPIO_CLK_FUN(ADVANCE_TIM_BKIN_GPIO_CLK,ENABLE);
 	GPIO_Advance_TIM_Structure.GPIO_Pin=ADVANCE_TIM_BKIN_PIN;
 	GPIO_Advance_TIM_Structure.GPIO_Mode=GPIO_Mode_AF_PP;
 	GPIO_Advance_TIM_Structure.GPIO_Speed=GPIO_Speed_50MHz;
 	GPIO_Init(ADVANCE_TIM_BKIN_PORT,&GPIO_Advance_TIM_Structure);
 	
-	//��ɲ��ͨ��Ϊ�͵�ƽ����ֹ��ɲ������PWM�޷����
+	//让刹车通道为低电平，防止勿刹车导致PWM无法输出
 	GPIO_ResetBits(ADVANCE_TIM_BKIN_PORT,ADVANCE_TIM_BKIN_PIN);
 }
 
 
 ///*
-// * ע�⣺TIM_TimeBaseInitTypeDef�ṹ��������5����Ա��TIM6��TIM7�ļĴ�������ֻ��
-// * TIM_Prescaler��TIM_Period������ʹ��TIM6��TIM7��ʱ��ֻ���ʼ����������Ա���ɣ�
-// * ����������Ա��ͨ�ö�ʱ���͸߼���ʱ������.
+// * 注意：TIM_TimeBaseInitTypeDef结构体里面有5个成员，TIM6和TIM7的寄存器里面只有
+// * TIM_Prescaler和TIM_Period，所以使用TIM6和TIM7的时候只需初始化这两个成员即可，
+// * 另外三个成员是通用定时器和高级定时器才有.
 // *-----------------------------------------------------------------------------
 // *typedef struct
-// *{ TIM_Prescaler            ����
-// *	TIM_CounterMode			     TIMx,x[6,7]û�У���������
-// *  TIM_Period               ����
-// *  TIM_ClockDivision        TIMx,x[6,7]û�У���������
-// *  TIM_RepetitionCounter    TIMx,x[1,8,15,16,17]����
+// *{ TIM_Prescaler            都有
+// *	TIM_CounterMode			     TIMx,x[6,7]没有，其他都有
+// *  TIM_Period               都有
+// *  TIM_ClockDivision        TIMx,x[6,7]没有，其他都有
+// *  TIM_RepetitionCounter    TIMx,x[1,8,15,16,17]才有
 // *}TIM_TimeBaseInitTypeDef; 
 // *-----------------------------------------------------------------------------
 // */
 
-/* ----------------   PWM�ź� ���ں�ռ�ձȵļ���--------------- */
-// ARR ���Զ���װ�ؼĴ�����ֵ
-// CLK_cnt����������ʱ�ӣ����� Fck_int / (psc+1) = 72M/(psc+1)
-// PWM �źŵ����� T = (ARR+1) * (1/CLK_cnt) = (ARR+1)*(PSC+1) / 72M
-// ռ�ձ�P=CCR/(ARR+1)
+/* ----------------   PWM信号 周期和占空比的计算--------------- */
+// ARR ：自动重装载寄存器的值
+// CLK_cnt：计数器的时钟，等于 Fck_int / (psc+1) = 72M/(psc+1)
+// PWM 信号的周期 T = (ARR+1) * (1/CLK_cnt) = (ARR+1)*(PSC+1) / 72M
+// 占空比P=CCR/(ARR+1)
 
 void Advance_TIM_Config(void)
 {
@@ -59,87 +59,88 @@ void Advance_TIM_Config(void)
 	TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
 	ADVANCE_TIM_APBxClock_FUN(ADVANCE_TIM_CLK,ENABLE);
 	
-	//********����TIM��ʱ���ṹ��********//
+	//********配置TIM的时基结构体********//
 	
-	//ʱ�ӷ�Ƶ���ӣ�����������ʱ��
+	//时钟分频因子，控制死区的时间
 	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
 	
-	//������ģʽ
+	//计数器模式
 	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
 	
-	//�Զ���װ��ֵ��ARR
+	//自动重装载值，ARR
 	TIM_TimeBaseStructure.TIM_Period=ADVANCE_TIM_PERIOD;
 	
-	//Ԥ��Ƶ��(��PSC��ֵ)
+	//预分频器(即PSC的值)
 	TIM_TimeBaseStructure.TIM_Prescaler=ADVANCE_TIM_PSC;
 	
-	//�ظ�������:ÿ���TIM_RepetitionCounter + 1 ��PWM���ں󴥷�һ�θ����жϺ�DMA����PWM�ź����һ������Ϊ0
+	//重复计数器:每完成TIM_RepetitionCounter + 1 个PWM周期后触发一次更新中断和DMA请求，PWM信号输出一般设置为0
 	TIM_TimeBaseStructure.TIM_RepetitionCounter=0;
 	TIM_TimeBaseInit(ADVANCE_TIM,&TIM_TimeBaseStructure);
 	
 	
-	//*********����TIM�Ļ�������ṹ��***********//
+	//*********配置TIM的互补输出结构体***********//
 	
-	//���ͨ�����е�ƽ
+	//输出通道空闲电平
 	TIM_OCInitStructure.TIM_OCIdleState=TIM_OCIdleState_Reset;
 	
-	//�������ͨ�����е�ƽ
+	//互补输出通道空闲电平
 	TIM_OCInitStructure.TIM_OCNIdleState=TIM_OCIdleState_Reset;
 	
-	//����Ƚ�ģʽ
+	//输出比较模式
 	TIM_OCInitStructure.TIM_OCMode=TIM_OCMode_PWM1;
 	
-	//���������(�����豸�ĸ���ƽ��Ч)
+	//主输出极性(告诉设备哪个电平有效)
 	TIM_OCInitStructure.TIM_OCPolarity=TIM_OCPolarity_High;
 	
-	//�����������(�����豸�ĸ���ƽ��Ч)
+	//互补输出极性(告诉设备哪个电平有效)
 	TIM_OCInitStructure.TIM_OCNPolarity=TIM_OCPolarity_High;
 	
-	//���ñȽϼĴ���(CRR)��ֵ
+	//设置比较寄存器(CRR)的值
 	TIM_OCInitStructure.TIM_Pulse=ADVANCE_TIM_PULSE;
 	
-	//�������ʹ��
+	//互补输出使能
 	TIM_OCInitStructure.TIM_OutputNState=TIM_OutputNState_Enable;
 	
-	//�����ʹ��
+	//主输出使能
 	TIM_OCInitStructure.TIM_OutputState= TIM_OutputState_Enable;
-	
+
+	//初始化结构体
 	TIM_OC1Init(ADVANCE_TIM,&TIM_OCInitStructure);
 	
-	//ʹ�ܱȽϼĴ���(CCR)
+	//使能影子寄存器(后面章节会讲解)
 	TIM_OC1PreloadConfig(ADVANCE_TIM,TIM_OCPreload_Enable);
 	
 	
-	/**************��ʼ��������ɲ���ṹ��****************/
+	/**************初始化死区和刹车结构体****************/
 	
-	//�Ƿ�����Ӳ���Զ��ָ�PWM���(ɲ�������)
+	//是否允许硬件自动恢复PWM输出(刹车解除后)
 	TIM_BDTRInitStructure.TIM_AutomaticOutput=TIM_AutomaticOutput_Enable;
 	
-	//ɲ��ʹ��
+	//刹车使能
 	TIM_BDTRInitStructure.TIM_Break=TIM_Break_Enable;
 	
-	//����ɲ�������ź�(BKIN)����Ч����(����ʱ����ɲ��)
+	//设置刹车输入信号(BKIN)的有效极性(即何时触发刹车)
 	TIM_BDTRInitStructure.TIM_BreakPolarity=TIM_BreakPolarity_High;
 	
-	//��������ʱ��
+	//设置死区时长
 	TIM_BDTRInitStructure.TIM_DeadTime=11;
 	
-	//���üĴ���д�������𣬷�ֹ���޸�����
+	//配置寄存器写保护级别，防止误修改配置
 	TIM_BDTRInitStructure.TIM_LOCKLevel=TIM_LOCKLevel_1;
 	
-	//����ģʽ(ɲ��ʱ)�µ����״̬(��TIM_OCIdleState���)
+	//空闲模式(刹车时)下的输出状态(与TIM_OCIdleState配合)
 	TIM_BDTRInitStructure.TIM_OSSIState=TIM_OSSIState_Enable;
 	
-	//����ģʽ(��ɲ��ʱ)�µ����״̬(��TIM_OCIdleState���)
+	//运行模式(非刹车时)下的输出状态(与TIM_OCIdleState配合)
 	TIM_BDTRInitStructure.TIM_OSSRState=TIM_OSSRState_Enable;
 	
-	//��ʼ���ṹ��
+	//初始化结构体
 	TIM_BDTRConfig(ADVANCE_TIM, &TIM_BDTRInitStructure);
 	
-	//ʹ�ܼ�ʱ��
+	//使能计时器
 	TIM_Cmd(ADVANCE_TIM, ENABLE);	
 	
-	//���PWM
+	//输出PWM
 	TIM_CtrlPWMOutputs(ADVANCE_TIM, ENABLE);
 }
 
