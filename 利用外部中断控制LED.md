@@ -93,7 +93,7 @@ NVIC_IRQChannel：指定配置的中断源，但是我们打开枚举值，发�
 
 2.配置EXTI的时钟，EXTI的时钟虽然也是挂在APB2上，要求传入的参数时"RCC_APB2Periph_AFIO"。这一步我和GPIO的时钟或了一下一起使能了。
 
-3.调用函数GPIO_EXTILineConfig()，确定中断的外设和引脚来源，注意这里的外设和引脚来源的参数还和GPIOx和引脚还不一样。
+3.调用函数GPIO_EXTILineConfig()，确定中断的外设和引脚来源，注意这里的参数和GPIOx和引脚还不一样。是如GPIO_PortSourceGPIOA和GPIO_PinSource0类型的。
 ![image](https://github.com/user-attachments/assets/da265c82-6704-4637-ae25-99fa748037f1)
 如何找到请见main函数中的操作手则。
 
