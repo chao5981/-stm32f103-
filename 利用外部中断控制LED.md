@@ -97,6 +97,8 @@ NVIC_IRQChannel：指定配置的中断源，但是我们打开枚举值，发�
 ![image](https://github.com/user-attachments/assets/da265c82-6704-4637-ae25-99fa748037f1)
 如何找到请见main函数中的操作手则。
 
+后期补充：并非所有EXTI中断都需要调用GPIO_EXTILineConfig()（或SYSCFG_EXTILineConfig()）函数来选择中断源。某些EXTI中断线是固定绑定到特定外设或信号的，而不是通过GPIO复用的，因此不需要配置GPIO映射。例如RTC闹钟（EXTI17）；USB唤醒（EXTI18）；以太网唤醒（EXTI19，部分型号支持）；PVD（可编程电压检测，EXTI16）。你可以理解为这个GPIO_EXTILineConfig()函数时用来告诉EXTI要留意哪个中断线的哪个引脚。
+
 4.配置里面含有的成员，这里我只和大家讲解一下这几个成员的意思。
 ①.EXTI_Line：选择外部中断线，例如EXTI0_Line就是表示EXTI0
 ②.EXTI_Mode：选择中断或事件模式
