@@ -118,3 +118,118 @@
   若不熟悉如何调用这些函数，可以看一下我的main.c文件参考一下。当然，能不烧录就不烧录，因为画的太丑了......
 
   哦对，这里的LCD显示图像是一件麻烦的事情，因为它毕竟不是点阵屏，点阵屏只需要把相对应的引脚拉高拉低就好了，但这里不是，现在我能想到的就一种方法：设计一个程序，让其可以在上面描点画图，最后画完图后导出每个点的坐标以俩个数组存放，最后用函数ILI9341_SetCursor ( uint16_t usX, uint16_t usY )	输入坐标填充相应的颜色即可。现在我看网上是没有这样的软件的，等我哪时候有时间了自己做一个，放在github上供大家使用。
+
+  如果要显示中文字体，则需要在font.c文件中使用flash的字模，这时候需要编写相应的函数和宏定义，定义如下：
+
+
+    #if GBKCODE_FLASH
+    
+    #include "Flash.h"
+    
+    #else
+    
+    #include "./ff.h"
+    
+    #endif
+
+
+    //选择使用FLASH字模还是SD卡的字模
+    #if GBKCODE_FLASH
+    
+    //选择 1：GB2312字模
+    //选择 0：HZLIB字模(旧版，不建议使用)
+    #if 1
+    
+    /*使用FLASH字模*/
+    //字模GB2312_H1616配套的函数
+    
+    //中文字库存储在FLASH的起始地址 ：
+    //GBKCODE_START_ADDRESS 在fonts.h文件定义
+    /**
+      * @brief  获取FLASH中文显示字库数据
+    	* @param  pBuffer:存储字库矩阵的缓冲区
+    	* @param  c ： 要获取的文字
+      * @retval None.
+      */
+    int GetGBKCode_from_EXFlash( uint8_t * pBuffer, uint16_t c)
+    { 
+        unsigned char High8bit,Low8bit;
+        unsigned int pos;
+    	
+    		static uint8_t everRead=0;
+    		
+    		/*第一次使用，初始化FLASH*/
+    		if(everRead == 0)
+    		{
+    			Flash_SPI_Init();
+    			everRead = 1;
+    		}
+    	
+    	  High8bit= c >> 8;     /* 取高8位数据 */
+        Low8bit= c & 0x00FF;  /* 取低8位数据 */		
+    	  	
+    		/*GB2312 公式*/
+        pos = ((High8bit-0xa1)*94+Low8bit-0xa1)*WIDTH_CH_CHAR*HEIGHT_CH_CHAR/8; 
+    		Flash_SPI_BufferRead(pBuffer,GBKCODE_START_ADDRESS+pos,WIDTH_CH_CHAR*HEIGHT_CH_CHAR/8); //读取字库数据  
+    //	  printf ( "%02x %02x %02x %02x\n", pBuffer[0],pBuffer[1],pBuffer[2],pBuffer[3]);
+    	
+    		return 0;  
+         
+    }
+    
+    #else //SD卡字模
+    
+    /*使用SD字模*/
+    
+    static FIL fnew;													/* file objects */
+    static FATFS fs;													/* Work area (file system object) for logical drives */
+    static FRESULT res_sd; 
+    static UINT br;            					/* File R/W count */
+    
+    //字库文件存储位置，fonts.h中的宏：
+    //#define GBKCODE_FILE_NAME			"0:/Font/GB2312_H2424.FON"
+    
+    /**
+      * @brief  获取SD卡中文显示字库数据
+    	* @param  pBuffer:存储字库矩阵的缓冲区
+    	* @param  c ： 要获取的文字
+      * @retval None.
+      */
+    int GetGBKCode_from_sd ( uint8_t * pBuffer, uint16_t c)
+    { 
+        unsigned char High8bit,Low8bit;
+        unsigned int pos;
+    		
+    		static uint8_t everRead = 0;
+    	
+        High8bit= c >> 8;     /* 取高8位数据 */
+        Low8bit= c & 0x00FF;  /* 取低8位数据 */
+    		
+        pos = ((High8bit-0xa1)*94+Low8bit-0xa1)*WIDTH_CH_CHAR*HEIGHT_CH_CHAR/8;
+    	
+    		/*第一次使用，挂载文件系统，初始化sd*/
+    		if(everRead == 0)
+    		{
+    			res_sd = f_mount(&fs,"0:",1);
+    			everRead = 1;
+    
+    		}
+    		
+        res_sd = f_open(&fnew , GBKCODE_FILE_NAME, FA_OPEN_EXISTING | FA_READ);
+        
+        if ( res_sd == FR_OK ) 
+        {
+            f_lseek (&fnew, pos);		//指针偏移
+    			
+    				//16*16大小的汉字 其字模 占用16*16/8个字节
+            res_sd = f_read( &fnew, pBuffer, WIDTH_CH_CHAR*HEIGHT_CH_CHAR/8, &br );		 
+            
+            f_close(&fnew);
+            
+            return 0;  
+        }    
+        else
+            return -1;    
+    }
+    
+    #endif
