@@ -99,6 +99,20 @@
 
 
   加入后：
+
+  <img width="1908" height="927" alt="image" src="https://github.com/user-attachments/assets/c8caee2e-9bf1-47c3-b2ab-04243f94aa8c" />
+
+  注意：这里除了定义还要调用以外，还有一个非常抽象的是，我这定义了一个全局变量也被直接优化了，除了code以外什么都没有增加;见如图：
+
+  <img width="1740" height="924" alt="image" src="https://github.com/user-attachments/assets/89a7de83-8183-4d66-b502-a8f1b39bd0bb" />
+
+  有点抽象，只能说这优化有一定好处，但想要理解那这优化的逻辑做的还是离神太近，离人太远了。
+
+  
+
+  
+
+
   
 
 
