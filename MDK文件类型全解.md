@@ -8,6 +8,7 @@
 
     MDK的工作原理
     编译过程中的各个操作的含义
+    程序是如何存储和运行
     各个类型文件是什么意思
     各个编译器能独立地做些什么
     MDK魔法棒各个配置的含义
@@ -35,6 +36,8 @@
 最后再经过formelf格式转换器倒腾一手变成.bin或者.hex文件的格式。
 
   在MDK中，烧录要的是.hex文件的格式，但有些烧录软件，要的是.bin文件的格式。
+
+  看完上述部分，你对MDK的工作原理应该就有一个大概的了解了。
 
   我们来看编译时build output打印出来的信息有什么用
 
@@ -108,10 +111,45 @@
 
   有点抽象，只能说这优化有一定好处，但想要理解那这优化的逻辑做的还是离神太近，离人太远了。
 
-  
+  不知道你看完后有没有一个问题，都是数据，为什么ZI-data能比RO-data和RW-data大这么多？
 
-  
+  因为ZI-data不仅仅存着可修改的初始化为0的数据，还存储着栈空间和堆空间。如函数内部定义的局部变量属于栈空间，进入函数的时候从向栈空间申请内存给局部变量，退出时释放局部变量，归还内存空间。而使用 malloc 动态分配的变量属于堆空间编译器给出的 ZI-data 占用的空间值中包含了堆栈的大小 (经实际测试，若程序中完全没有使用 malloc 动态申请堆空间，编译器会优化，不把堆空间计算在内)。
 
+  这里如果调用malloc，ZI-data会把堆空间也算进来，如图
+
+  未使用malloc前
+
+  <img width="1888" height="959" alt="image" src="https://github.com/user-attachments/assets/5535fa95-39c5-49b7-98d7-8f0c1c3cc9f7" />
+
+  使用后:
+
+  <img width="1735" height="920" alt="image" src="https://github.com/user-attachments/assets/110a17ab-c4f0-4887-b4e5-16cdb91b5fc5" />
+
+  但需要注意的是，栈空间和堆空间都有一定的大小，并且没有计算机那么富裕，如果开的范围太大，那么编译器会报错。大小可以在startup_stm32f10x_hd.s文件中查询
+
+  <img width="624" height="405" alt="image" src="https://github.com/user-attachments/assets/937509bc-7c53-4994-9d5e-278db8cf8d0c" />
+
+  下图展示数组开太大后爆栈时编译器报错
+  
+  <img width="1892" height="976" alt="image" src="https://github.com/user-attachments/assets/68ba9f10-dbf3-4cd0-bbc8-0b2018dbf8e7" />
+
+  注意：经过我本人的测试，理论上我开malloc(sizeof(u8)*1024)就已经堆溢出了，但是编译器并没有报错，现在不知道是不是自己的问题，大家也可以试一试。大家在使用堆的时候，记住一次开空间不要超过startup_stm32f10x_hd.s文件内的堆空间，并且用完后及时free()掉。
+
+  整理一下队形，我们刚刚讲build output打印出来的信息，谈到了 Program Size: Code=1176 RO-data=320 RW-data=0 ZI-data=1024，展开讲了各个数据的具体含义。
+
+  回到build output打印出来的信息
+
+  FromELF: creating hex file... ----- MDK用了fromelf生成了.hex文件，MDK就可以用.hex文件烧录到我们的stm32里面。
+
+  After Build - User command #1: fromelf --bin --output ..\..\Output\流水灯.bin ..\..\Output\流水灯.axf -----这一步不是MDK自动生成的，而是人为加上去的。这一句我们先放在这，暂时不去讲，后面提到再说，大家会理解更加深刻一点。
+
+  看完上述文字后，你应该对编译过程中的各个操作的含义有了一定的了解。本质上，build output 打印出来的东西流程就是MDK的工作流程。
+
+
+  不知道你们在学习RW-data和ZI-data是否会有一个疑问，RO-data和ZI-data仅仅是初始值不一样而已，为什么编译器要把他俩分开呢？通过这个现象，我们可以管中窥豹程序的存储和运行。
+
+    
+  
 
   
 
