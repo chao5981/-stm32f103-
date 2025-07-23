@@ -262,8 +262,9 @@
 
    Misc Controls（杂项控制）：一般为无
 
-   Compiler control string：也就是输入到armcc的命令，我们要按照这样的格式输入，才能得到.o文件。你完全可以把inerwork后面的文件夹换成对应的文件试一试，
-   
+   Compiler control string：由上述配置自动拼接生成，也就是输入到armcc的命令，我们要按照这样的格式输入，才能得到.o文件。你完全可以把inerwork后面的文件夹换成对应的文件试一试，
+
+   <img width="1475" height="774" alt="image" src="https://github.com/user-attachments/assets/8bcf7d41-19dd-4b6a-a7c3-3179aaa58c38" />
   
   只是不会出现前面的报错，而是出现了文件找不到的情况。
 
@@ -271,9 +272,66 @@
 
   接下来看armasm，和armcc的功能差不多，把.s文件转为.o文件，对应的是魔法棒的Asm模块
 
+  <img width="708" height="516" alt="image" src="https://github.com/user-attachments/assets/935af966-0f07-47ff-8f4f-2eb3921e29df" />
+
+  这里简单依次讲解:
+
+  Conditional Assembly Control Symbols（条件汇编控制符号）
+
+    Define：用于定义汇编阶段的预处理宏
+    Undefine：用于取消汇编阶段的预处理宏
+
+   Language / Code Generation（语言与代码生成）
+
+     Thumb Mode（Thumb 模式）：强制汇编器生成 Thumb 指令集（ARM 指令集的 16 位精简版）
+     减小代码体积（Thumb 指令更短），适合 Cortex-M 系列（仅支持 Thumb/Thumb-2）。但实际测试开不开都无所谓
+
+     No Warnings（关闭警告）：启用后，汇编器会忽略所有警告信息（如语法不严谨、符号未使用等）
+
+  Include Paths（头文件搜索路径）：作用：指定汇编器查找汇编头文件（如 .inc、.s 依赖的文件）的路径。 但是我发现即使不添加，按照启动文件的配置也可以正常烧录程序，这个我也不知道为什么，网上也查不到相关信息
+
+  Misc Controls（杂项控制）：手动输入汇编器的额外参数（覆盖默认配置）。
+
+  Assembler control string（汇编器控制字符串）：由上述配置自动拼接生成，也就是输入到armasm的命令，我们要按照这样的格式输入，才能得到.o文件。
+
+  简而言之，这个也不是给人操作的。
+  
+  接下来介绍armlink，armlink是链接器，它把各个 O 文件链接组合在一起生成 ELF 格式的 AXF 文件，AXF 文件是可执行的，下载器把该文件中的指令代码下载到芯片后，该芯片就能运行程序了；利用 armlink 还可以控制程序存储到指定的 ROM 或 RAM 地址。
+
+  对应的是魔法棒的Linker模块
+  
+  <img width="723" height="505" alt="image" src="https://github.com/user-attachments/assets/81fb8d72-78be-447d-99e5-4997ba50d230" />
+
+  下面介绍主要配置
+
+   Use Memory Layout from Target Dialog：启用后，链接器优先使用 Target 选项卡中配置的 内存布局（如 IRAM、IROM 的起始地址和大小）
+
+   Report 'might fail' Conditions as Errors：将链接器的 “潜在失败警告” 升级为错误（强制中断编译）。
+
+   如果你开启了 Use Memory Layout from Target Dialog，那么后面的都不用管了，因为RO/RW-data分配到哪里，MDK已经根据之前target配置的值自动分配好，但是如果你想单独把某些数据存储到某些区域，进行更加细致的分配，那你需要不勾选Use Memory Layout from Target Dialog，并且打开.sct文件进行配置。如何配置这个后面再提。
+
+  X/O Base：配置 扩展 / 外部存储区 的基地址（极少用，常规开发依赖 Target 配置）。
+  
+  R/O Base：配置 只读存储区（RO） 的基地址（如 Flash 起始地址，默认与 Target 同步）。
+  
+  R/W Base：配置 可读写存储区（RW/ZI） 的基地址（如 RAM 起始地址，默认与 Target 同步）。
+
+  Scatter File（分散加载文件）：用自定义脚本（.sct 文件）替代 Target 配置，实现复杂内存布局。(如果开启了 Use Memory Layout from Target Dialog ，那这个无需配置;如果未开启，那需要手动配置，如何操作后面再提)
+
+  Misc controls（杂项控制）：手动添加链接器参数（覆盖默认配置）
+
+  Linker control string（链接器控制字符串）：由上述配置自动拼接生成，也就是输入到armlink的命令，我们要按照这样的格式输入，才能得到.axf文件。
+
+  总的来说，armlink也不是给人操作的
+
+  那tm到底哪些是给人操作的？至少咱能用到吧
+
+  有的兄弟，接下来fromelf用到的就比较多了
+
+  对于fromelf编译器的配置，MDK反而没有集成多少，只有生成HEX的选项，而对于另外生成.lib的选项，是另外一个编译器armar的。
 
   
 
-
+  
 
   
