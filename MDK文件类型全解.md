@@ -191,7 +191,85 @@
 
   下面来讲解各个编译器单独能干什么操作。
 
+  下面来讲解各个编译器单独能干什么操作，对于MDK魔法棒的哪些操作。
+
+  为了方便我们在任意一个文件夹都可以使用各个编译器，我们需要配置路径，这里以window11为例
+
+  在系统中搜索"环境变量"
+
+  <img width="1111" height="827" alt="image" src="https://github.com/user-attachments/assets/ca99b145-403f-44a2-b8e5-082a58b9a902" />
+
+  点击"编辑用户环境变量"
+
+  选择"path"，大小学都可以
+
+  <img width="694" height="332" alt="image" src="https://github.com/user-attachments/assets/a9e77ba1-3c9c-44b4-bab3-f198c9a7b841" />
+
+  点击编辑，弹出窗口后再点击编辑，把  *** Using Compiler 'V5.06 update 7 (build 960)', folder: 'D:\keil 5.36\Keil_v5\ARM\ARMCC\Bin' 里的地址复制进去，点击确定。(添加的时候不要加任何符号，只要地址，和window 7的配置有点区别)
+
+  <img width="742" height="671" alt="image" src="https://github.com/user-attachments/assets/d483f3a4-cfe4-41e7-9750-5c4996c6c720" />
+
+  然后在任意的文件夹中，在搜索地址的地方输入cmd,输入formelf，如果成功弹出，那就说明配置路径成功。
+
+  <img width="1914" height="950" alt="image" src="https://github.com/user-attachments/assets/e7076260-7a02-40ad-b966-0a8f58735e95" />
+
+  <img width="1742" height="898" alt="image" src="https://github.com/user-attachments/assets/0ca3c047-d848-43a5-911c-bed82df70cd0" />
+
+  开始介绍各个编译器
+
+  1.armcc:用于把 c/c++ 文件编译成 ARM 指令代码，编译后会输出 ELF 格式的 .o 文件。
+
+  打开armcc编译器，上面有使用格式usage和一系列的指令说明option
   
+  <img width="1492" height="753" alt="image" src="https://github.com/user-attachments/assets/8c699bbf-ede8-4e53-9c00-be5c8ce6f3bc" />
+
+  如果你想试试单独作用armcc，拷贝一个.c文件到一个文件夹，然后输入指令，你大概率会遇到这样的情况。
+
+  <img width="1475" height="773" alt="image" src="https://github.com/user-attachments/assets/3c3e480c-535b-4d09-bea3-8ab7561804b6" />
+
+  为什么呢？因为一堆option你还没选择，包括但不限于:开始时这个文件的类型，你要转化成哪种芯片的机器码，是否生成用于高级调试的表，编译器自动优化等级等等
+
+  所以这个就不是给人操作的，是给MDK操作的
+
+  这个编译器的配置对应的是MDK魔法棒的C/C++模块，如图所示：
+
+  <img width="670" height="495" alt="image" src="https://github.com/user-attachments/assets/3ba3be8a-ec2f-41aa-8d9a-d8deeeae512a" />
+
+  这里简单依次讲解:
+
+  Preprocessor Symbols（预处理符号）:
+  
+    Define：定义预处理宏，多个宏之间用逗号或空格分隔 
+    Undefine：取消定义某些宏。该输入框通常保持为空，除非有特殊需求需要取消某个已定义的宏
+
+  Language / Code Generation（语言 / 代码生成）:只讲可能会用到的，大部分其实都用不到
+
+    Optimization：优化等级选择，有 Level 0 (O0)、Level 1 (O1)、Level 2 (O2)、Level 3 (O3) 等选项。
+      Level 0 (O0) 表示不进行优化，编译速度快且调试信息完整，方便调试；
+      Level 3 (O3) 则是最高级别的优化，会尽可能优化代码，减少代码体积、提高运行速度，但可能会使调试变得复杂，因为优化后的代码结构和原始代码差异较大。
+
+    Optimize for Time：勾选后，编译器会优先考虑优化代码的执行时间，以提高程序的运行效率，通常配合较高的优化等级使用。
+
+    C99 Mode：勾选后，编译器将支持 C99 标准的部分特性，比如新的关键字、变长数组等。如果项目使用了 C99 的特性，需要勾选此选项。
+
+    One ELF Section per Function：编译器会为每个函数生成独立的 ELF 节，便于链接优化和调试便利。
+    如果对代码的优化、调试便利性有较高要求，且对文件大小和编译时间增加的容忍度较高，可以勾选，
+    如果项目对可执行文件大小极为敏感，或者函数数量较少，编译时间已经是关键因素，那么不勾选该选项可能更为合适。
+
+  其余可以通过百度自行查询，也可以查询MDK的帮助手册，但是全是英文且废话多，比较难懂
+
+   Include Paths（包含路径）：用于指定编译器查找头文件的路径
+
+   Misc Controls（杂项控制）：一般为无
+
+   Compiler control string：也就是输入到armcc的命令，我们要按照这样的格式输入，才能得到.o文件。你完全可以把inerwork后面的文件夹换成对应的文件试一试，
+   
+  
+  只是不会出现前面的报错，而是出现了文件找不到的情况。
+
+  所以这个编译器不是给人正常操作的...,我们用的也不多
+
+  接下来看armasm，和armcc的功能差不多，把.s文件转为.o文件，对应的是魔法棒的Asm模块
 
 
   
