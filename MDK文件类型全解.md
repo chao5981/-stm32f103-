@@ -330,7 +330,20 @@
 
   对于fromelf编译器的配置，MDK反而没有集成多少，只有生成HEX的选项，而对于另外生成.lib的选项，是另外一个编译器armar的。
 
-  
+  我们之前说过，有些烧录软件是不支持.hex文件的，需要.bin类型或者.i32类型的文件，这时候我们可以手动用fromelf帮助我们生成
+
+  <img width="1427" height="728" alt="image" src="https://github.com/user-attachments/assets/beabccd5-b67e-4309-b12d-c39003c772e2" />
+
+  <img width="884" height="269" alt="image" src="https://github.com/user-attachments/assets/e79ea70f-6e8a-4fc5-8033-19e423b08aac" />
+
+  当然了，MDK虽然没有全部集成，但是是可以手动配置的，在魔法棒的User里面配置
+
+  <img width="718" height="519" alt="image" src="https://github.com/user-attachments/assets/7282fac8-4481-4701-934f-f7ff1749cdef" />
+
+  输入的命令和直接输入到fromelf的指令差不多，就是文件地址得改成全局的地址，这就是为什么最开始先配置环境路径的原因，每次使用都得输入绝对路径那还了得。
+
+  路径以keil 5的程序所在地址开始，.\为同一级文件夹，..\为上一级文件夹。
+
 
   
 
