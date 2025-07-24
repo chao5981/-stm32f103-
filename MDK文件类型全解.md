@@ -344,7 +344,118 @@
 
   路径以keil 5的程序所在地址开始，.\为同一级文件夹，..\为上一级文件夹。
 
+  看完上述，对各个编译器能独立地做些什么和MDK魔法棒各个配置的含义应该有了一个全面的了解
 
-  
+  我们除了output/objects里面的文件类型以外，在project中也有几个类型的文件，这里我直接附上一张表格，方便对应
 
+  <img width="508" height="633" alt="image" src="https://github.com/user-attachments/assets/53397863-9623-4d4a-840a-24d8d4d6cf64" />
+
+  具体哪个文件有什么作用，这个在野火的开发手册里面讲的很清楚，我已经没有能力比他讲地更加优秀，要想了解各个文件具体的作用，请查阅野火的开发指南或者b站上野火官方高级篇
+
+  这里我只提及可能大家未来会用到的
+
+  如果，我想查看各个文件的具体信息，我要怎么查看呢
+
+  这些文件的具体信息是ELF文件头，ELF 文件头用来描述整个文件的组织，例如数据的大小端格式，程序头、节区头在文件中的位置等。所以查看ELF可以很方便地区查看各个文件的关键信息。
+
+  <img width="780" height="483" alt="image" src="https://github.com/user-attachments/assets/de950317-03b7-422a-94df-7d68bb5a7654" />
+
+
+  这时候我们可以利用fromelf去查看，输入fromelf –text –v bsp_led.o(.axf文件也可以打印出ELF文件头)指令，就可以打印出bsp_led.o的详细信息，但我们一般把信息直接存储到一个记事本里面，方便查看。
+
+  <img width="1468" height="870" alt="image" src="https://github.com/user-attachments/assets/cf69c325-27d0-47a1-bc72-1ecbee76ed1d" />
+
+  这里面数据意思如下：
+
+  <img width="845" height="840" alt="image" src="https://github.com/user-attachments/assets/5a779f6b-971e-4445-9adf-29ac7c83d5a6" />
+
+  <img width="842" height="347" alt="image" src="https://github.com/user-attachments/assets/51403959-96ea-41d3-9c23-07b2d9b5123d" />
+
+  <img width="845" height="154" alt="image" src="https://github.com/user-attachments/assets/9e3c17b3-fe43-4520-8543-b6150dca72c3" />
+
+  要想查看各个函数的具体详细，需要勾选“Options for Target ->C/C++ -> One ELF Section per Function”中的选项，生成的 *.o 文件内部的代码区域才会与 C 文件中定义的函数名一致，否则它会把多个函数合成一个代码段，名字一般跟 C 文件中的函数名不同。
+
+  下面是.axf文件的ELF生成的具体信息。
+
+  <img width="844" height="484" alt="image" src="https://github.com/user-attachments/assets/fa02a101-0853-40a6-a697-fba6417a836b" />
+
+  <img width="666" height="757" alt="image" src="https://github.com/user-attachments/assets/616dd321-4175-4f5a-a286-97472db729b4" />
+
+  <img width="676" height="569" alt="image" src="https://github.com/user-attachments/assets/5440e821-bbe9-4cdb-a1bd-e566082a89ed" />
+
+  <img width="684" height="351" alt="image" src="https://github.com/user-attachments/assets/69b872e8-838f-4ce8-bbe7-c85dbdce6cf1" />
+
+  我们大概率在实践中最有可能就是用到这么多，其他的有需要再了解吧
+
+  所以我们能理解的是，axf文件有大量的信息，且直接使用 fromelf即可反汇编代码，所以更不要随便泄露 axf 文件。lib 文件也能反使用 fromelf 文件反汇编代码，不过它不能还原出 C 代码，由于 lib 文件的主要目的是为了保护 C 源代码，也算是达到了它的要求。
+
+  那可是这样也麻烦，我只想想看看哪些文件是否正确调用，然后Code，RO-data各个文件是多少，没有简单点的方法吗。还是有的，这个需要打开我们的.map文件
+
+  双击"Project"下面的的一个文件夹，就能打开map
+
+  <img width="217" height="81" alt="image" src="https://github.com/user-attachments/assets/49052823-a282-4d46-98cb-0076769783d4" />
+
+  上面有哪些文件被移除，哪些函数被调用;以及还有各个函数的起始地址;最下面还要每个文件的Code等数据的信息;最好还有个汇总信息.
+
+  根据这些，你能发现哪些函数的哪些数据被编译器优化，通过对比就可以发现了
+
+  最后再讲解一个文件，.sct文件
+
+  也就是我之前没填的坑，如果我想自由手动的存储数据到某个地址，就需要在.sct文件进行修改
+
+  若要启用sct文件，需要关闭Linker的Use Memory Layout from Target Dialog
+
+  打开output/objects文件夹，找到.sct文件，拖至keil5里面即可编辑
+
+  其编辑格式如下：
   
+  <img width="694" height="688" alt="image" src="https://github.com/user-attachments/assets/03dae55c-4c21-46c4-b459-31b001a6a8c0" />
+
+  例子如下：
+  <img width="701" height="349" alt="image" src="https://github.com/user-attachments/assets/1de68f79-7d27-4c70-9027-009b455e2c87" />
+
+  书写格式如下:
+
+  <img width="721" height="196" alt="image" src="https://github.com/user-attachments/assets/450522a6-403d-4b8c-bff2-2593529d0e62" />
+
+  <img width="712" height="132" alt="image" src="https://github.com/user-attachments/assets/fd643268-201a-4202-8971-e0a7d3aaade9" />
+
+  模块选择样式：模块选择样式可用于选择 o 及 lib 目标文件作为输入节区，它可以直接使用目标文件名或“*”通配符，也可以使用“.ANY”。例如，使用语句“bsp_led.o”可以选择bsp_led.o 文件，使用语句“.o”可以选择所有 o 文件，使用“.lib”可以选择所有 lib 文件使用“*”或“.ANY”可以选择所有的 o 文件及 lib 文件。其中“.ANY”选择语句的优先级是最低的，所有其它选择语句选择完剩下的数据才会被“.ANY”语句选中。
+
+  输入节区样式：我们知道在目标文件中会包含多个节区或符号，通过输入节区样式可以选择要控制的节区。示例文件中“(RESET，+First)”语句的 RESET 就是输入节区样式，它选择了名为 RESET 的节区，并使用后面介绍的节区特性控制字“+First”表示它要存储到本区域的第一个地址。示例文件中的“(InRoot$$Sections)”是一个链接器支持的特殊选择符号，它可以选择所有标准库里要求存储到 root 区域的节区，如 __main.o、__scatter.o 等内容。
+
+  输入符号样式：同样地，使用输入符号样式可以选择要控制的符号，符号样式需要使用“:gdef:”来修饰。例如可以使用“*(:gdef:Value_Test)”来控制选择符号“Value_Test”
+
+  输入节区属性：通过在模块选择样式后面加入输入节区属性，可以选择样式中不同的内容，每个节区属性描述符前要写一个“+”号，使用空格或“，”号分隔开，可以使用的节区属性描述符见表属性描述符及其意义 。例如，示例文件中使用“.ANY(+RO)”选择剩余所有节区 RO 属性的内容都分配到执行域ER_IROM1 中，使用“.ANY(+RW +ZI)”选择剩余所有节区 RW 及 ZI 属性的内容都分配到执行域 RW_IRAM1 中。
+
+  节区特性：节区特性可以使用“+FIRST”或“+LAST”选项配置它要存储到的位置，FIRST存储到区域的头部，LAST 存储到尾部。通常重要的节区会放在头部，而 CheckSum(校验和)之类的数据会放在尾部。例如示例文件中使用“(RESET,+First)”选择了 RESET 节区，并要求把它放置到本区域第一个位置，而 RESET 是工程启动代码中定义的向量表，该向量表中定义的堆栈顶和复位向量指针必须要存储在内部 FLASH 的前两个地址，这样 STM32 才能正常启动，所以必须使用 FIRST 控制它们存储到首地址。
+
+  <img width="797" height="262" alt="image" src="https://github.com/user-attachments/assets/a8eb55c8-bcde-490b-8673-e66dad1139d8" />
+
+  以这个为例，讲一下这个sct文件讲的什么内容
+
+  程序的加载域为内部 FLASH 的 0x08000000，最大空间为 0x00080000；程序的执行基地址与加载基地址相同，其中 RESET 节区定义的向量表要存储在内部 FLASH 的首地址，且所有 o 文件及 lib 文件的 RO 属性内容都存储在内部 FLASH 中；程序执行时 RW 及 ZI 区域都存储在以 0x20000000 为基地址，大小为 0x00010000 的空间 (64KB)，这部分正好是 STM32 内部主 SRAM 的大小。
+
+  我觉得要是这样也挺麻烦的，我要找相关的芯片类型，翻阅它们的参考手册，还需要确定ROM区和RAM区的大小，最后还需要手动分配...
+
+  确实，但是这个MDK已经帮助我们集成好了，芯片的选择我们需要配置魔法棒的Device选项，选择好芯片，自动就能确定ROM和RAM的大小
+
+  <img width="630" height="475" alt="image" src="https://github.com/user-attachments/assets/30c3b684-742d-414e-a75a-8dd5de750f94" />
+
+  如果自己懒得开加载域，感到麻烦呢？这个也可以通过MDK配置进行分区，在魔法棒的Target区域，有外部ROM/RAM和内部ROM/RAM的分区，只需要你输入起始地址和大小，MDK会自动生成.sct的加载域的分区
+
+  <img width="663" height="496" alt="image" src="https://github.com/user-attachments/assets/cc52b7d9-f2a8-4f5b-a100-22e4f8be156c" />
+
+  然后你想把哪些数据放在哪里，那就是需要自己配置的事情了。
+
+  除此之外，我们也可以右键特定的文件把他放到相应的区域
+
+  <img width="545" height="646" alt="image" src="https://github.com/user-attachments/assets/e6fb76a7-e01d-49de-b9e2-393d6646068a" />
+
+  修改完后对应的文件会有个小雪花
+  
+  但是这样单独修改比较麻烦，不常用，我还不如在.sct文件通用修改
+
+  好了，基本上会用到的文件已经全部讲解完毕。
+
+
