@@ -20,6 +20,8 @@
 
 <img width="1129" height="266" alt="image" src="https://github.com/user-attachments/assets/9f0359f4-1d43-4ebc-8c8b-d16105e81be8" />
 
+<img width="1143" height="588" alt="image" src="https://github.com/user-attachments/assets/27584053-4f48-4c55-9464-1b8a370557cb" />
+
 
 
 EXTI控制器的原理图如图所示。
