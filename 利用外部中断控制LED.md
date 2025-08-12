@@ -18,7 +18,8 @@
 
 那么我们配置之后，优先级和子优先级的范围是多少？请见下图：
 
-![image](https://github.com/user-attachments/assets/82b5ed57-5988-446d-816f-d338e4cdfc9d)
+<img width="1129" height="266" alt="image" src="https://github.com/user-attachments/assets/9f0359f4-1d43-4ebc-8c8b-d16105e81be8" />
+
 
 
 EXTI控制器的原理图如图所示。
