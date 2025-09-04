@@ -88,3 +88,32 @@
  			clock_status_config.PCLK1_Frequency, 
  			clock_status_config.PCLK2_Frequency, 
  			clock_source_config);
+
+
+
+ 对于HAL库而言，相比于标准库我们不需要调用这么多的函数，HAL库把PLL的时钟选择和PLL对AHB1,AHB2的分频之类的全部集成在了结构体中，我们只需要配置相应的结构体即可。
+
+ 下面介绍相应的结构体及其成员:
+
+ 1. RCC_OscInitTypeDef 结构体
+
+     OscillatorType：指定要配置的振荡器(HSE,HSI,LSI,LSE)类型，可以"|"组合
+    
+     HSEState:HSE的状态
+    
+     HSIState:HSI的状态
+    
+     HSICalibrationValue:HSI的校准值,通常使用默认值 RCC_HSICALIBRATION_DEFAULT，或者从Flash的特定位置读取。范围通常是0-0x1F（5位）。
+    
+     LSEState：LSE的状态
+    
+     LSIState：LSI的状态
+    
+     PLL:PLL的配置结构体。这是一个嵌套结构体，其成员有:
+    
+     PLLState：PLL的状态
+     PLLSource:PLL的时钟源
+     PLLMUL：PLL的分频器
+
+    
+ 3. 
