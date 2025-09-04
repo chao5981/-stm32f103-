@@ -124,6 +124,8 @@
 
   AHBCLKDivider:AHB总线时钟（HCLK）的分频系数,CLK = SYSCLK / AHBCLKDivider
 
+
+ 
   APB1CLKDivider:APB1总线时钟（PCLK1）的分频系数。PCLK1 = HCLK / APB1CLKDivider
 
   APB2CLKDivider:APB2总线时钟（PCLK2）的分频系数。PCLK2 = HCLK / APB2CLKDivider
