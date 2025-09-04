@@ -190,4 +190,4 @@ HAL库将中断全部封装在了所有的外设上，比如说对于判断中�
 
 所以建议后面的开发都采用callback函数，这样确实可以简化代码量，便于理解。
 
-
+对于EXTI和NVIC的一些函数功能甚至是有所重叠的，例如前面提到的HAL_NVIC_SetPendingIRQ(),强行将中断挂起;在EXTI中也有一个类似的函数:HAL_EXTI_GenerateSWI (EXTI_HandleTypeDef *hexti),软件产生中断，只不过前者适用于所有情况，而后者只能适用于EXTI。当然传入的参数还是有些不一样的。但功能上确实是前者更加广泛且适用了，
