@@ -116,4 +116,17 @@
      PLLMUL：PLL的分频器
 
     
- 3. 
+ 2. RCC_ClkInitTypeDef 结构体
+
+  ClockType:指定要配置的时钟类型(SYSCLK,HCLK,PCLK1,PLCK2),可以"|"组合.RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2，表示配置所有时钟。
+
+  SYSCLKSource:系统时钟（SYSCLK）源(HSI,HSE,LSI,LSE)选择。
+
+  AHBCLKDivider:AHB总线时钟（HCLK）的分频系数,CLK = SYSCLK / AHBCLKDivider
+
+  APB1CLKDivider:APB1总线时钟（PCLK1）的分频系数。PCLK1 = HCLK / APB1CLKDivider
+
+  APB2CLKDivider:APB2总线时钟（PCLK2）的分频系数。PCLK2 = HCLK / APB2CLKDivider
+
+
+  
