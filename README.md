@@ -5,7 +5,7 @@
   2.先配置时钟
   由于GPIO被APB2时钟控制，我们找到对应的启动APB2时钟的库函数
 
-  对于标准库，APB时钟有一个专门的函数，要求输入对应的GPIOx后ENABLE即可。但是对于HAL库而言，这些都被封装成了宏，搜索HAL_RCC,显示了各个时钟的enable和disable，去对于外设所连接的时钟找即可。
+  对于标准库，APB时钟有一个专门的函数，要求输入对应的GPIOx后ENABLE即可。但是对于HAL库而言，这些都被封装成了宏，搜索HAL_RCC,显示了各个时钟的enable和disable，去对于外设所连接的时钟找即可。但需要了解的是，它分为XXXXCLK ENABLE DISABLE 和XXX Peripheral(外围的) ENABLE DISABLE. 前者主要是用于其他芯片的外加的其余的外设，而后者是用于所有芯片都含有的外设
 
   3. 配置GPIO结构体并初始化结构体
 
