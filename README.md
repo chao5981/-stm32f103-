@@ -117,3 +117,77 @@ NVIC_IRQChannel：指定配置的中断源，但是我们打开枚举值，发�
 最后，我们需要在中断的头文件"stm32f10x_it.c"中编写中断函数，每一个EXTIx都有相对应的中断函数，例如EXTI0就对应着中断函数EXTI0_IRQHandler(),依次类推。按着自己的需要，编写中断函数即可。
 
 后期补充：对于外部中断，你只需要把EXTI初始化过后，中断的通道就开启了，通过控制外部的引脚就可以产生中断；但是对于内部中断而言，需要手动开启中断。例如TIM基本定时器中需要调用TIM_ITConfig()函数开启中断
+
+
+对于HAL库而言，其变化和标准库相比就大了很多
+
+首先是EXTI的结构体被彻底废掉，HAL库将EXTI（外部中断）的配置分散并集成到了各个相关的外设初始化结构中，而不是像标准库那样有一个独立的、集中的EXTI_InitTypeDef结构体。
+
+当你使用 HAL_GPIO_Init() 初始化一个GPIO引脚，并将其模式设置为 GPIO_MODE_IT_RISING, GPIO_MODE_IT_FALLING, 或 GPIO_MODE_IT_RISING_FALLING 时，HAL库内部会自动完成以下工作：
+
+配置GPIO本身。
+
+配置相应的EXTI线（选择引脚、触发边沿）。
+
+使能该EXTI线。
+
+注意：HAL库通过GPIO的引脚号自动映射到对应的EXTI线（例如，GPIO_PIN_0 对应 EXTI_LINE_0，GPIO_PIN_15 对应 EXTI_LINE_15）。你不需要再手动调用类似 GPIO_EXTILineConfig 的函数。
+
+NVIC在CORTEX Exported Functions目录下可以查找到
+
+仍需手动配置NVIC：仍然需要像标准库一样，配置NVIC的中断优先级并使能中断通道。但是也不需要配置NVIC结构体，标准库中NVIC的结构体被整合成了HAL_NVIC_SetPriority();中断优先级的分组为 HAL_NVIC_SetPriorityGrouping()函数。如果不手动分组，HAL库在初始化时会默认使用4 位抢占优先级此时所有 4 位都用于表示抢占优先级，子优先级为 0。
+
+最后使能相关的NVIC中断通道即可
+
+中断服务函数有俩种模式可以写，第一种和我们标准库一样:进入相应的中断，判断相应的中断标志位是否置位，进行对应操作然后清除相应的标志位
+
+    void KEY1_IRQHandler(void)
+    {
+      //确保是否产生了EXTI Line中断
+    	if(__HAL_GPIO_EXTI_GET_IT(KEY1_INT_GPIO_PIN) != RESET) 
+    	{
+    		// LED1 取反		
+    		LED1_TOGGLE;
+        //清除中断标志位
+    		__HAL_GPIO_EXTI_CLEAR_IT(KEY1_INT_GPIO_PIN);     
+    	}  
+    }
+
+还有一种callback写法，进入中断后调用相应的IRQHandle函数，然后在主函数编写相应的callback函数(callback函数的名称必须严格对应，否则是不会执行),程序会跳到这个函数执行相应的操作，并且无需清除中断标志位，因为在IRQHandle函数中已经清除了，感兴趣可以点击definition查看源码。
+
+
+    void KEY1_IRQHandler(void)
+    {
+      HAL_GPIO_EXTI_IRQHandler(KEY1_INT_GPIO_PIN); 
+    }
+    
+    void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+    {
+      switch (GPIO_Pin)
+    	{
+    		case KEY1_INT_GPIO_PIN :
+    			
+    		  LED1_TOGGLE
+    		  break;
+    		
+    		case KEY2_INT_GPIO_PIN :
+    			
+    		  LED2_TOGGLE
+    		  break;		
+    	}
+    }
+
+
+HAL库还提供了很多其他类型的函数，如:获取优先级分组，获取某个中断的优先级分配，手动设置中断为 “挂起” 状态，强制触发中断响应（即使中断源未实际产生请求）(函数为HAL_NVIC_SetPendingIRQ，仅当该中断已被 HAL_NVIC_EnableIRQ 使能时，挂起状态才会被 CPU 处理（执行 ISR），适用于所有中断);获取中断标志位等等
+
+这里提及HAL库最独特的一点，杂。
+
+对于中断而言，先从我们最常用的判断中断标志位和清除中断标志位，以及callback函数说起
+
+HAL库将中断全部封装在了所有的外设上，比如说对于判断中断标志位，对于GPIO还有专门的判断中断标志位的函数，但是对于TIM外设，就没有这个函数，只能调用NVIC的相关函数HAL_NVIC_GetPendingIRQ去判断
+
+后面官方似乎又"放弃"了这种做法，更加青睐于callback函数，这样可以简化开发，隐藏底层细节。并且几乎每一个外设都会有一个专门的相对应的IRQHandle函数和callback函数。
+
+所以建议后面的开发都采用callback函数，这样确实可以简化代码量，便于理解。
+
+
