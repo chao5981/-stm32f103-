@@ -131,4 +131,7 @@
   APB2CLKDivider:APB2总线时钟（PCLK2）的分频系数。PCLK2 = HCLK / APB2CLKDivider
 
 
+  进行配置时，最好是把结构体的所有成员全部赋值为0。
+
+  如果想要输出到MCO引脚的话，只需要配置相应的GPIO引脚，设置模式为推挽输出;然后调用HAL_RCC_MCOConfig()即可正常运行
   
