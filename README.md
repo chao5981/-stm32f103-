@@ -19,48 +19,7 @@
 如果是通过中断去计时的话，那么你需要在主函数调用初始化函数；如果是不通过中断来计数的话，那么只需要调用NO_EXTI的函数类型即可。本质是开启systick，数完数后马上关闭。
 
 
-下面简述可能对大家更有用的。
-
-如果利用中断和SysTick进行计时，的确是低CPU占用了，但是如果是短时间的延时，那么误差会很大，因为每一个函数的进入和出去都会消耗时间。
-
-如果不用中断，只是用SysTick,那么时间将会非常精确，但是CPU占用率很高。
-
-如果你是单纯的只是需要延时，那么这俩个就凑合够用了，但是我是需要在不同时间内控制不同的外设呢？
-
-这时候我们需要用SysTick实现定时回调或时间戳。即不是用它去“等一段时间”，而是用它去“记录时间的流逝”，这样你就可以自己判断“什么时候做某件事”——而不是卡在那等。
-
-这里我用AI跑了一个，大家仅供参考，到后面有需要的话，我再进行特定的编写。
-
-在中断函数：
-
-        uint32_t system_tick = 0;
-        void SysTick_Handler(void)
-        {
-            system_tick++;  // 每 1ms 进入中断一次，就+1，单位是毫秒
-        }
-        
-        在自己的头文件中:
-        void led_blink_logic(void)
-        {
-            static uint32_t last = 0;
-            if(system_tick - last >= 500)  // 每500ms执行一次
-            {
-                Toggle_LED();
-                last = system_tick;
-            }
-        }
-
-在头文件中:
-
-        int main(void)
-        {
-            SysTick_Config(SystemCoreClock / 1000);  // 每1ms触发一次SysTick_Handler
-        
-            while(1)
-            {
-                led_blink_logic();  // 不是延时，而是判断是否“该闪了”
-                //其他的任务照样可以跑
-            }
-        }
+对于HAL库来说，其代码和标准库没什么太大的区别，只是在初始化的时候，标准库使能计时器的这一步SysTick->CTRL |=  SysTick_CTRL_ENABLE_Msk被HAL集成在了HAL_SYSTICK_Config()函数中，然后其他的步骤和标准库一样，也是写一个递减的函数在systick_Handle里面调用即可
 
 
+更加人性化的是，HAL库已经提供了一个HAL_Delay()毫秒级延时的函数，我们无需进行初始化，只需要在中断函数systick_Handle中调用HAL_IncTick()函数即可。当然，在LC_HAL_template中已经默认调用了。只要中断函数有它，就可以调用HAL提供的系统时基，超时判断，时间记录，挂起/恢复tick等函数，具体函数在HAL_Control functions中。
