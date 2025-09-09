@@ -171,4 +171,21 @@ USART_WordLength:USART的字长，一般地，我们传输数据都是用的8位
     2.不会出错:stm32cubemx是芯片厂商的人员编写的，是一定正确的，手写的容易出错
     3.也是最重要的一点：hal库不是一成不变的!在不同的芯片上，HAL库编写会有所不同。例如:在f103中，USART_RX设置的模式是输入模式，既不上拉又不下拉。但是到了f407中，USART_RX只有设置为复用输出，既不上拉又不下拉才能正常工作。甚至在f407的帮助手册中，GPIO_MODE_INPUT都不存在。
 
-  我们只需要创建一个UartHandle类型的变量，就可以解决使用哪个USART和USART的初始化的配置。并且我们在配置GPIO时，我们完全可以不写在初始化，
+  我们只需要创建一个UartHandle类型的变量，就可以解决使用哪个USART和USART的初始化的配置。并且我们在配置GPIO时，我们完全可以不写在初始化USART的函数里面，而是写在相关函数的MSPInit函数里面去。细看的话我们并没有被调用，是被封装在了USART的初始化函数中
+
+  在接受USART的数据并回传数据时，有俩种可以使用的工作方案
+
+  1.开启USART中断
+  
+  2.在主函数中使能接收中断HAL_UART_Receive_IT
+
+  3.在主函数调用HAL_UART_RxCpltCallback()函数，在这个函数中调用HAL_UART_Transmit(&UartHandle,rx_data,1,100);
+  HAL_UART_Receive_IT(&UartHandle,rx_data,1);//回调函数中需要重新使能中断
+
+  第二种工作方案是直接在中断函数种操作寄存器
+
+  1.开启USART中断
+
+  2.在相关的中断函数中调用uint8_t ch=0; 
+  ch=( uint16_t)READ_REG(UartHandle.Instance->DR);
+  WRITE_REG(UartHandle.Instance->DR,ch); 直接对寄存器进行操作
